@@ -17,12 +17,12 @@ interface VideoListProps {
 }
 
 export default function VideoList({ videos }: VideoListProps) {
-  const supabase = createClient()
   const router = useRouter()
 
   const handleDelete = async (videoId: string) => {
     if (!confirm('この動画を削除しますか？')) return
 
+    const supabase = createClient()
     const { error } = await supabase
       .from('youtube_videos')
       .delete()

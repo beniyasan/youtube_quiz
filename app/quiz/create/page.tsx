@@ -13,13 +13,13 @@ export default function CreateQuizPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
     loadPlaylists()
   }, [])
 
   const loadPlaylists = async () => {
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -41,6 +41,7 @@ export default function CreateQuizPage() {
     setLoading(true)
     setError(null)
 
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/auth/login')
