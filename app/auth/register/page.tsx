@@ -18,24 +18,38 @@ export default function RegisterPage() {
     setLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-        },
-      },
+    // デバッグ用ログ
+    console.log('Environment check:', {
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      keyLength: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length
     })
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+          },
+        },
+      })
 
-    router.push('/auth/verify-email')
+      if (error) {
+        console.error('Supabase auth error:', error)
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+
+      router.push('/auth/verify-email')
+    } catch (err) {
+      console.error('Registration error:', err)
+      setError('登録中にエラーが発生しました。環境変数の設定を確認してください。')
+      setLoading(false)
+    }
   }
 
   return (
