@@ -13,7 +13,6 @@ export default function AddVideoForm({ playlistId }: AddVideoFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
 
   const extractVideoId = (url: string): string | null => {
     const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/
@@ -42,6 +41,7 @@ export default function AddVideoForm({ playlistId }: AddVideoFormProps) {
       
       const videoInfo = await response.json()
 
+      const supabase = createClient()
       const { error: dbError } = await supabase
         .from('youtube_videos')
         .insert({

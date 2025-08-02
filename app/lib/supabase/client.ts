@@ -5,7 +5,11 @@ export function createClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !key) {
-    throw new Error('Supabase environment variables are not set')
+    console.warn('Supabase environment variables are not set. Using placeholder values for build.')
+    return createBrowserClient(
+      url || 'https://placeholder.supabase.co',
+      key || 'placeholder-key'
+    )
   }
 
   return createBrowserClient(url, key)

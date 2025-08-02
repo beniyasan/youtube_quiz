@@ -32,7 +32,6 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   const [isHost, setIsHost] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
 
   useEffect(() => {
@@ -49,6 +48,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
 
     return () => {
       if (channel) {
+        const supabase = createClient()
         supabase.removeChannel(channel)
       }
     }
@@ -64,6 +64,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   }, [timeLeft, currentQuestion])
 
   const loadRoom = async () => {
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/auth/login')
@@ -92,6 +93,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   }
 
   const loadParticipants = async () => {
+    const supabase = createClient()
     const { data } = await supabase
       .from('quiz_participants')
       .select(`
@@ -106,6 +108,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   }
 
   const setupRealtimeSubscription = () => {
+    const supabase = createClient()
     const newChannel = supabase
       .channel(`room:${roomId}`)
       .on(
@@ -150,6 +153,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   const startQuiz = async () => {
     if (!isHost || !room) return
 
+    const supabase = createClient()
     await supabase
       .from('quiz_rooms')
       .update({ status: 'playing', started_at: new Date().toISOString() })
@@ -193,6 +197,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   const submitAnswer = async () => {
     if (!selectedAnswer || !currentQuestion) return
 
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
