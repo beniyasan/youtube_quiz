@@ -1,47 +1,28 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+export function middleware(request: NextRequest) {
+  // 認証が必要なパスを定義
+  const protectedPaths = ['/dashboard', '/playlist', '/quiz']
+  const authPaths = ['/auth/login', '/auth/register', '/auth/verify-email']
+  const publicPaths = ['/']
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
+  const path = request.nextUrl.pathname
+
+  // 認証が必要なパスの場合、クライアントサイドで認証チェックを行う
+  if (protectedPaths.some(p => path.startsWith(p))) {
+    // Supabaseの認証cookieがあるかチェック
+    const authCookie = request.cookies.get('sb-access-token') || 
+                      request.cookies.get('supabase-auth-token') ||
+                      request.cookies.getAll().find(cookie => 
+                        cookie.name.includes('supabase') || cookie.name.includes('auth')
+                      )
+    
+    if (!authCookie) {
+      return NextResponse.redirect(new URL('/auth/login', request.url))
     }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/')
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
+  return NextResponse.next()
 }
 
 export const config = {

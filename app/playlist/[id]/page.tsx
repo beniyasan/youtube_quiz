@@ -3,13 +3,16 @@ import { notFound } from 'next/navigation'
 import AddVideoForm from './AddVideoForm'
 import VideoList from './VideoList'
 
-export default async function PlaylistPage({ params }: { params: { id: string } }) {
+export const dynamic = 'force-dynamic'
+
+export default async function PlaylistPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
   
   const { data: playlist, error } = await supabase
     .from('playlists')
     .select('*, youtube_videos(*)')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (error || !playlist) {

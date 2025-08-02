@@ -21,7 +21,8 @@ interface Question {
   time_limit: number
 }
 
-export default function QuizRoomPage({ params }: { params: { id: string } }) {
+export default function QuizRoomPage({ params }: { params: Promise<{ id: string }> }) {
+  const [roomId, setRoomId] = useState<string | null>(null)
   const [room, setRoom] = useState<any>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
@@ -35,6 +36,14 @@ export default function QuizRoomPage({ params }: { params: { id: string } }) {
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
 
   useEffect(() => {
+    params.then(({ id }) => {
+      setRoomId(id)
+    })
+  }, [params])
+
+  useEffect(() => {
+    if (!roomId) return
+    
     loadRoom()
     setupRealtimeSubscription()
 
@@ -43,7 +52,7 @@ export default function QuizRoomPage({ params }: { params: { id: string } }) {
         supabase.removeChannel(channel)
       }
     }
-  }, [params.id])
+  }, [roomId])
 
   useEffect(() => {
     if (timeLeft > 0 && currentQuestion) {
@@ -70,7 +79,7 @@ export default function QuizRoomPage({ params }: { params: { id: string } }) {
           youtube_videos (*)
         )
       `)
-      .eq('id', params.id)
+      .eq('id', roomId)
       .single()
 
     if (roomData) {
@@ -89,7 +98,7 @@ export default function QuizRoomPage({ params }: { params: { id: string } }) {
         *,
         users (username)
       `)
-      .eq('room_id', params.id)
+      .eq('room_id', roomId)
 
     if (data) {
       setParticipants(data as any)
@@ -98,14 +107,14 @@ export default function QuizRoomPage({ params }: { params: { id: string } }) {
 
   const setupRealtimeSubscription = () => {
     const newChannel = supabase
-      .channel(`room:${params.id}`)
+      .channel(`room:${roomId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'quiz_participants',
-          filter: `room_id=eq.${params.id}`,
+          filter: `room_id=eq.${roomId}`,
         },
         () => {
           loadParticipants()
@@ -117,7 +126,7 @@ export default function QuizRoomPage({ params }: { params: { id: string } }) {
           event: 'UPDATE',
           schema: 'public',
           table: 'quiz_rooms',
-          filter: `id=eq.${params.id}`,
+          filter: `id=eq.${roomId}`,
         },
         () => {
           loadRoom()
@@ -144,7 +153,7 @@ export default function QuizRoomPage({ params }: { params: { id: string } }) {
     await supabase
       .from('quiz_rooms')
       .update({ status: 'playing', started_at: new Date().toISOString() })
-      .eq('id', params.id)
+      .eq('id', roomId)
 
     sendNextQuestion()
   }

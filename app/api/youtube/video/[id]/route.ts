@@ -29,8 +29,9 @@ function parseDuration(duration: string): number {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const apiKey = process.env.YOUTUBE_API_KEY
   
   if (!apiKey) {
@@ -42,7 +43,7 @@ export async function GET(
 
   try {
     const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?id=${params.id}&part=snippet,contentDetails&key=${apiKey}`
+      `https://www.googleapis.com/youtube/v3/videos?id=${id}&part=snippet,contentDetails&key=${apiKey}`
     )
 
     if (!response.ok) {
