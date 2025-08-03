@@ -1,132 +1,257 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/app/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import GradientLayout from '@/app/components/ui/GradientLayout'
-import DashboardCard from '@/app/components/ui/DashboardCard'
-import PrimaryButton from '@/app/components/ui/PrimaryButton'
-import SecondaryButton from '@/app/components/ui/SecondaryButton'
+import { createClient } from '@/app/lib/supabase/client'
+import type { QuizSettings } from '@/app/types/quiz'
 
-export const dynamic = 'force-dynamic'
+interface Playlist {
+  id: string
+  name: string
+  description: string
+  video_count: number
+}
 
 export default function CreateQuizPage() {
-  const [playlists, setPlaylists] = useState<any[]>([])
-  const [selectedPlaylist, setSelectedPlaylist] = useState('')
-  const [maxPlayers, setMaxPlayers] = useState(10)
+  const [playlists, setPlaylists] = useState<Playlist[]>([])
+  const [selectedPlaylist, setSelectedPlaylist] = useState<string>('')
+  const [settings, setSettings] = useState<QuizSettings>({
+    maxParticipants: 10,
+    timePerStage: 15,
+    answerTimeLimit: 10,
+    stageProgression: 'auto',
+    pointsForStage1: 3,
+    pointsForStage2: 2,
+    pointsForStage3: 1,
+    penaltyPoints: -1
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    loadPlaylists()
+    fetchPlaylists()
   }, [])
 
-  const loadPlaylists = async () => {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+  const fetchPlaylists = async () => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('playlists')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-    const { data } = await supabase
-      .from('playlists')
-      .select('*, youtube_videos(count)')
-      .eq('user_id', user.id)
-
-    if (data) {
-      setPlaylists(data.filter(p => p.youtube_videos[0].count > 0))
+      if (error) throw error
+      setPlaylists(data || [])
+    } catch (err) {
+      console.error('Error fetching playlists:', err)
+      setError('プレイリスト取得に失敗しました')
     }
   }
 
-  const generateRoomCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase()
-  }
+  const handleCreateSession = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedPlaylist) {
+      setError('プレイリストを選択してください')
+      return
+    }
 
-  const handleCreateRoom = async () => {
     setLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
-
-    const roomCode = generateRoomCode()
-
-    const { data, error } = await supabase
-      .from('quiz_rooms')
-      .insert({
-        host_id: user.id,
-        playlist_id: selectedPlaylist,
-        room_code: roomCode,
-        max_players: maxPlayers,
-        status: 'waiting',
+    try {
+      const response = await fetch('/api/quiz/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playlistId: selectedPlaylist,
+          settings
+        })
       })
-      .select()
-      .single()
 
-    if (error) {
-      setError(error.message)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'セッション作成に失敗しました')
+      }
+
+      // ホスト画面にリダイレクト
+      router.push(`/quiz/room/${result.sessionId}/host`)
+    } catch (err) {
+      console.error('Error creating session:', err)
+      setError(err instanceof Error ? err.message : 'セッション作成に失敗しました')
+    } finally {
       setLoading(false)
-      return
     }
-
-    // Join as host
-    await supabase
-      .from('quiz_participants')
-      .insert({
-        room_id: data.id,
-        user_id: user.id,
-      })
-
-    router.push(`/quiz/room/${data.id}`)
   }
 
   return (
-    <GradientLayout className="p-4 md:p-8 flex items-center justify-center">
-      <div className="max-w-2xl w-full">
-        <DashboardCard className="p-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full mb-4">
-              <span className="text-3xl">🎮</span>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800">クイズルームを作成</h1>
-            <p className="text-gray-600 mt-2">プレイリストを選んでクイズを始めましょう</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-blue-800 p-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">クイズセッション作成</h1>
+          <p className="text-blue-100">プレイリストを選択してクイズを開始しましょう</p>
+        </div>
 
-          <div className="space-y-6">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
+          <form onSubmit={handleCreateSession} className="space-y-6">
+            {/* プレイリスト選択 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                プレイリストを選択
+              <label className="block text-base font-medium text-gray-700 mb-3">
+                プレイリスト選択
               </label>
               <select
                 value={selectedPlaylist}
                 onChange={(e) => setSelectedPlaylist(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50/50"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required
               >
-                <option value="">選択してください</option>
-                {playlists.map((playlist) => (
+                <option value="">プレイリストを選択してください</option>
+                {playlists.map(playlist => (
                   <option key={playlist.id} value={playlist.id}>
-                    {playlist.name} ({playlist.youtube_videos[0].count} 動画)
+                    {playlist.name} ({playlist.video_count}動画)
                   </option>
                 ))}
               </select>
             </div>
 
+            {/* 基本設定 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  最大参加者数
+                </label>
+                <input
+                  type="number"
+                  min="2"
+                  max="50"
+                  value={settings.maxParticipants}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    maxParticipants: parseInt(e.target.value)
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  段階あたりの時間（秒）
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  max="60"
+                  value={settings.timePerStage}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    timePerStage: parseInt(e.target.value)
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  回答制限時間（秒）
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  max="30"
+                  value={settings.answerTimeLimit}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    answerTimeLimit: parseInt(e.target.value)
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  段階進行
+                </label>
+                <select
+                  value={settings.stageProgression}
+                  onChange={(e) => setSettings({
+                    ...settings,
+                    stageProgression: e.target.value as 'auto' | 'manual'
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="auto">自動</option>
+                  <option value="manual">手動</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 得点設定 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                最大参加人数
-              </label>
-              <input
-                type="number"
-                min="2"
-                max="20"
-                value={maxPlayers}
-                onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-gray-50/50"
-              />
+              <h3 className="text-lg font-medium text-gray-700 mb-3">得点設定</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">音声のみ正解</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={settings.pointsForStage1}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      pointsForStage1: parseInt(e.target.value)
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">映像正解</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={settings.pointsForStage2}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      pointsForStage2: parseInt(e.target.value)
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">最初から正解</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={settings.pointsForStage3}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      pointsForStage3: parseInt(e.target.value)
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">不正解ペナルティ</label>
+                  <input
+                    type="number"
+                    min="-5"
+                    max="0"
+                    value={settings.penaltyPoints}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      penaltyPoints: parseInt(e.target.value)
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
             </div>
 
             {error && (
@@ -135,25 +260,26 @@ export default function CreateQuizPage() {
               </div>
             )}
 
-            <div className="flex gap-4 pt-4">
-              <PrimaryButton
-                onClick={handleCreateRoom}
-                disabled={loading || !selectedPlaylist}
-                loading={loading}
-                className="flex-1"
-              >
-                ルームを作成
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={() => router.push('/dashboard')}
-                className="flex-1"
-              >
-                キャンセル
-              </SecondaryButton>
-            </div>
-          </div>
-        </DashboardCard>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-4 px-8 text-lg rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:transform-none"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  作成中...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <span className="mr-2">🎮</span>
+                  クイズセッション作成
+                </div>
+              )}
+            </button>
+          </form>
+        </div>
       </div>
-    </GradientLayout>
+    </div>
   )
 }

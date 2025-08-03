@@ -1,217 +1,183 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+// Supabaseデータベーステーブル型定義
 
 export interface Database {
   public: {
     Tables: {
-      users: {
+      quiz_sessions: {
         Row: {
-          id: string
-          email: string
-          username: string
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          playlist_id: string;
+          room_code: string;
+          host_user_id: string;
+          status: 'waiting' | 'playing' | 'finished';
+          current_question_index: number;
+          settings: QuizSettingsDb;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          email: string
-          username: string
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          playlist_id: string;
+          room_code: string;
+          host_user_id: string;
+          status?: 'waiting' | 'playing' | 'finished';
+          current_question_index?: number;
+          settings?: QuizSettingsDb;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          email?: string
-          username?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      playlists: {
-        Row: {
-          id: string
-          user_id: string
-          name: string
-          description: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          name: string
-          description?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          description?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      youtube_videos: {
-        Row: {
-          id: string
-          playlist_id: string
-          youtube_url: string
-          title: string
-          thumbnail_url: string | null
-          duration: number | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          playlist_id: string
-          youtube_url: string
-          title: string
-          thumbnail_url?: string | null
-          duration?: number | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          playlist_id?: string
-          youtube_url?: string
-          title?: string
-          thumbnail_url?: string | null
-          duration?: number | null
-          created_at?: string
-        }
-      }
-      quiz_rooms: {
-        Row: {
-          id: string
-          host_id: string
-          playlist_id: string
-          room_code: string
-          status: 'waiting' | 'playing' | 'finished'
-          max_players: number
-          created_at: string
-          started_at: string | null
-          finished_at: string | null
-        }
-        Insert: {
-          id?: string
-          host_id: string
-          playlist_id: string
-          room_code: string
-          status?: 'waiting' | 'playing' | 'finished'
-          max_players?: number
-          created_at?: string
-          started_at?: string | null
-          finished_at?: string | null
-        }
-        Update: {
-          id?: string
-          host_id?: string
-          playlist_id?: string
-          room_code?: string
-          status?: 'waiting' | 'playing' | 'finished'
-          max_players?: number
-          created_at?: string
-          started_at?: string | null
-          finished_at?: string | null
-        }
-      }
+          id?: string;
+          playlist_id?: string;
+          room_code?: string;
+          host_user_id?: string;
+          status?: 'waiting' | 'playing' | 'finished';
+          current_question_index?: number;
+          settings?: QuizSettingsDb;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       quiz_participants: {
         Row: {
-          id: string
-          room_id: string
-          user_id: string
-          score: number
-          joined_at: string
-        }
+          id: string;
+          session_id: string;
+          user_id: string;
+          display_name: string;
+          score: number;
+          is_eliminated: boolean;
+          joined_at: string;
+        };
         Insert: {
-          id?: string
-          room_id: string
-          user_id: string
-          score?: number
-          joined_at?: string
-        }
+          id?: string;
+          session_id: string;
+          user_id: string;
+          display_name: string;
+          score?: number;
+          is_eliminated?: boolean;
+          joined_at?: string;
+        };
         Update: {
-          id?: string
-          room_id?: string
-          user_id?: string
-          score?: number
-          joined_at?: string
-        }
-      }
+          id?: string;
+          session_id?: string;
+          user_id?: string;
+          display_name?: string;
+          score?: number;
+          is_eliminated?: boolean;
+          joined_at?: string;
+        };
+      };
       quiz_questions: {
         Row: {
-          id: string
-          room_id: string
-          video_id: string
-          question_text: string
-          correct_answer: string
-          options: Json
-          time_limit: number
-          created_at: string
-        }
+          id: string;
+          session_id: string;
+          video_id: string;
+          video_title: string;
+          correct_answers: string[];
+          audio_start_time: number;
+          video_start_time: number;
+          question_order: number;
+          created_at: string;
+        };
         Insert: {
-          id?: string
-          room_id: string
-          video_id: string
-          question_text: string
-          correct_answer: string
-          options: Json
-          time_limit?: number
-          created_at?: string
-        }
+          id?: string;
+          session_id: string;
+          video_id: string;
+          video_title: string;
+          correct_answers: string[];
+          audio_start_time?: number;
+          video_start_time?: number;
+          question_order: number;
+          created_at?: string;
+        };
         Update: {
-          id?: string
-          room_id?: string
-          video_id?: string
-          question_text?: string
-          correct_answer?: string
-          options?: Json
-          time_limit?: number
-          created_at?: string
-        }
-      }
+          id?: string;
+          session_id?: string;
+          video_id?: string;
+          video_title?: string;
+          correct_answers?: string[];
+          audio_start_time?: number;
+          video_start_time?: number;
+          question_order?: number;
+          created_at?: string;
+        };
+      };
       quiz_answers: {
         Row: {
-          id: string
-          question_id: string
-          participant_id: string
-          answer: string
-          is_correct: boolean
-          answered_at: string
-        }
+          id: string;
+          session_id: string;
+          question_id: string;
+          participant_id: string;
+          answer_text: string;
+          is_correct: boolean;
+          answered_at: string;
+          stage_when_answered: 1 | 2 | 3;
+          points_awarded: number;
+        };
         Insert: {
-          id?: string
-          question_id: string
-          participant_id: string
-          answer: string
-          is_correct: boolean
-          answered_at?: string
-        }
+          id?: string;
+          session_id: string;
+          question_id: string;
+          participant_id: string;
+          answer_text: string;
+          is_correct: boolean;
+          answered_at?: string;
+          stage_when_answered: 1 | 2 | 3;
+          points_awarded?: number;
+        };
         Update: {
-          id?: string
-          question_id?: string
-          participant_id?: string
-          answer?: string
-          is_correct?: boolean
-          answered_at?: string
-        }
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
+          id?: string;
+          session_id?: string;
+          question_id?: string;
+          participant_id?: string;
+          answer_text?: string;
+          is_correct?: boolean;
+          answered_at?: string;
+          stage_when_answered?: 1 | 2 | 3;
+          points_awarded?: number;
+        };
+      };
+    };
     Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      [_ in never]: never
-    }
-  }
+      generate_room_code: {
+        Args: {};
+        Returns: string;
+      };
+      update_participant_score: {
+        Args: {
+          p_participant_id: string;
+          p_points: number;
+        };
+        Returns: void;
+      };
+      get_session_stats: {
+        Args: {
+          p_session_id: string;
+        };
+        Returns: {
+          total_participants: number;
+          total_questions: number;
+          current_question: number;
+          leaderboard: Array<{
+            participant_id: string;
+            display_name: string;
+            score: number;
+            rank: number;
+          }>;
+        };
+      };
+    };
+  };
+}
+
+// JSONB設定型
+export interface QuizSettingsDb {
+  maxParticipants: number;
+  timePerStage: number;
+  answerTimeLimit: number;
+  stageProgression: 'auto' | 'manual';
+  pointsForStage1: number;
+  pointsForStage2: number;
+  pointsForStage3: number;
+  penaltyPoints: number;
 }
