@@ -1,8 +1,8 @@
 // クイズセッション作成API
 
 import { NextRequest, NextResponse } from 'next/server';
-import { QuizSessionService } from '@/app/lib/supabase/quiz-sessions';
-import { VideoProcessor } from '@/app/lib/utils/video-processor';
+import { createClient as createServerClient } from '@/app/lib/supabase/server';
+import { createClient as createBrowserClient } from '@/app/lib/supabase/client';
 import type { QuizSettings } from '@/app/types/quiz';
 
 export async function POST(request: NextRequest) {
@@ -35,11 +35,60 @@ export async function POST(request: NextRequest) {
       ...settings
     };
 
-    // セッション作成
-    const sessionService = new QuizSessionService();
-    const result = await sessionService.createSession(playlistId, quizSettings);
+    // サーバーサイドでの認証とセッション作成
+    const supabase = await createServerClient();
+    
+    // 認証チェック
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('Server auth error:', userError);
+      return NextResponse.json(
+        { error: 'ログインが必要です' },
+        { status: 401 }
+      );
+    }
 
-    return NextResponse.json(result);
+    console.log('Authenticated user:', user.id);
+
+    // ルームコード生成
+    const { data: roomCodeData, error: roomCodeError } = await supabase.rpc('generate_room_code');
+    if (roomCodeError) {
+      console.error('Room code generation error:', roomCodeError);
+      return NextResponse.json(
+        { error: 'ルームコード生成に失敗しました' },
+        { status: 500 }
+      );
+    }
+
+    console.log('Generated room code:', roomCodeData);
+
+    // セッション作成
+    const { data, error } = await supabase
+      .from('quiz_rooms')
+      .insert({
+        playlist_id: playlistId,
+        room_code: roomCodeData,
+        host_id: user.id,
+        max_players: quizSettings.maxParticipants,
+        settings: quizSettings as any
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Session creation error:', error);
+      return NextResponse.json(
+        { error: 'セッション作成に失敗しました: ' + error.message },
+        { status: 500 }
+      );
+    }
+
+    console.log('Session created:', data);
+
+    return NextResponse.json({
+      sessionId: data.id,
+      roomCode: data.room_code
+    });
   } catch (error) {
     console.error('Session creation error:', error);
     
@@ -59,10 +108,29 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionService = new QuizSessionService();
-    const sessions = await sessionService.getHostedSessions();
+    const supabase = await createServerClient();
+    
+    // 認証チェック
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'ログインが必要です' },
+        { status: 401 }
+      );
+    }
 
-    return NextResponse.json({ sessions });
+    // ホストしているセッション一覧取得
+    const { data, error } = await supabase
+      .from('quiz_rooms')
+      .select('*')
+      .eq('host_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error('セッション一覧取得に失敗しました: ' + error.message);
+    }
+
+    return NextResponse.json({ sessions: data || [] });
   } catch (error) {
     console.error('Get sessions error:', error);
     
