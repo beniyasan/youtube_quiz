@@ -30,8 +30,26 @@ export default function CreateQuizPage() {
   const router = useRouter()
 
   useEffect(() => {
-    fetchPlaylists()
+    checkAuthAndFetchPlaylists()
   }, [])
+
+  const checkAuthAndFetchPlaylists = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        console.log('User not authenticated, redirecting to login')
+        router.push('/auth/login')
+        return
+      }
+      
+      await fetchPlaylists()
+    } catch (err) {
+      console.error('Auth check failed:', err)
+      router.push('/auth/login')
+    }
+  }
 
   const fetchPlaylists = async () => {
     try {

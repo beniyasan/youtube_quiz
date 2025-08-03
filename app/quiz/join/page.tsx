@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/app/lib/supabase/client'
 
 export default function JoinQuizPage() {
   const [roomCode, setRoomCode] = useState('')
@@ -9,6 +10,26 @@ export default function JoinQuizPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        console.log('User not authenticated, redirecting to login')
+        router.push('/auth/login')
+        return
+      }
+    } catch (err) {
+      console.error('Auth check failed:', err)
+      router.push('/auth/login')
+    }
+  }
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault()

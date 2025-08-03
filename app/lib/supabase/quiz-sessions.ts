@@ -30,8 +30,13 @@ export class QuizSessionService {
 
     // 現在のユーザー取得
     const { data: { user }, error: userError } = await this.supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('認証が必要です');
+    if (userError) {
+      console.error('Auth error:', userError);
+      throw new Error(`認証エラー: ${userError.message}`);
+    }
+    if (!user) {
+      console.error('No user found');
+      throw new Error('ログインが必要です。ログインページでログインしてください。');
     }
 
     // セッション作成（既存quiz_roomsテーブルを使用）
