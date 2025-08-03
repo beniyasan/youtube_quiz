@@ -18,7 +18,7 @@ export default function LoginPage() {
     setError(null)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -28,6 +28,13 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
+
+    // ログイン成功後のセッション状態をログ出力
+    console.log('Login successful:', data)
+    
+    // セッション確認
+    const { data: sessionData } = await supabase.auth.getSession()
+    console.log('Session after login:', sessionData)
 
     router.push('/dashboard')
   }

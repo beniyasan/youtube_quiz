@@ -18,7 +18,8 @@ export class QuizSessionService {
    */
   async createSession(
     playlistId: string,
-    settings: QuizSettings
+    settings: QuizSettings,
+    skipAuth: boolean = false
   ): Promise<CreateSessionResponse> {
     // ルームコード生成
     const { data: roomCodeData, error: roomCodeError } = await this.supabase
@@ -28,17 +29,26 @@ export class QuizSessionService {
       throw new Error('ルームコード生成に失敗しました');
     }
 
-    // 現在のセッションとユーザー取得
-    const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      throw new Error(`認証エラー: ${sessionError.message}`);
+    // 認証チェック（スキップオプション付き）
+    let userId: string;
+    
+    if (skipAuth) {
+      // 認証スキップ時はダミーユーザーIDを使用
+      userId = '00000000-0000-0000-0000-000000000000';
+      console.log('Auth skipped, using dummy user ID');
+    } else {
+      // 現在のセッションとユーザー取得
+      const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error(`認証エラー: ${sessionError.message}`);
+      }
+      if (!session || !session.user) {
+        console.error('No session or user found');
+        throw new Error('ログインセッションが見つかりません。再度ログインしてください。');
+      }
+      userId = session.user.id;
     }
-    if (!session || !session.user) {
-      console.error('No session or user found');
-      throw new Error('ログインセッションが見つかりません。再度ログインしてください。');
-    }
-    const user = session.user;
 
     // セッション作成（既存quiz_roomsテーブルを使用）
     const { data, error } = await this.supabase
@@ -46,7 +56,7 @@ export class QuizSessionService {
       .insert({
         playlist_id: playlistId,
         room_code: roomCodeData,
-        host_id: user.id,
+        host_id: userId,
         max_players: settings.maxParticipants,
         settings: settings as any
       })
