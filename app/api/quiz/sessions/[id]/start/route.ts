@@ -4,15 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { QuizSessionService } from '@/app/lib/supabase/quiz-sessions';
 import { createClient } from '@/app/lib/supabase/client';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const sessionId = params.id;
+    const { id: sessionId } = await context.params;
 
     const sessionService = new QuizSessionService();
     const session = await sessionService.getSession(sessionId);

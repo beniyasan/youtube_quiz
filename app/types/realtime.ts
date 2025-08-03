@@ -101,7 +101,7 @@ export interface ScoreUpdatedEvent {
 }
 
 // リアルタイムチャンネルのペイロード
-export interface RealtimePayload<T = QuizRealtimeEvent> {
+export interface RealtimePayload<T extends QuizRealtimeEvent = QuizRealtimeEvent> {
   event: T['type'];
   payload: T;
   timestamp: number;

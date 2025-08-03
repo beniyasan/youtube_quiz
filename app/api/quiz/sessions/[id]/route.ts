@@ -5,15 +5,12 @@ import { QuizSessionService } from '@/app/lib/supabase/quiz-sessions';
 import { ParticipantService } from '@/app/lib/supabase/participants';
 import { createClient } from '@/app/lib/supabase/client';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const sessionId = params.id;
+    const { id: sessionId } = await context.params;
     
     const sessionService = new QuizSessionService();
     const participantService = new ParticipantService();
@@ -82,9 +79,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const sessionId = params.id;
+    const { id: sessionId } = await context.params;
     const body = await request.json();
     const { status, current_question_index } = body;
 
@@ -118,9 +118,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const sessionId = params.id;
+    const { id: sessionId } = await context.params;
 
     const sessionService = new QuizSessionService();
     await sessionService.deleteSession(sessionId);

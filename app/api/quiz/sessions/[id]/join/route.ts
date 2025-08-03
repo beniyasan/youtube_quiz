@@ -3,15 +3,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ParticipantService } from '@/app/lib/supabase/participants';
 
-interface RouteParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const sessionId = params.id;
+    const { id: sessionId } = await context.params;
     const body = await request.json();
     const { displayName } = body;
 
@@ -51,9 +48,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
-    const sessionId = params.id;
+    const { id: sessionId } = await context.params;
 
     const participantService = new ParticipantService();
     await participantService.leaveSession(sessionId);
