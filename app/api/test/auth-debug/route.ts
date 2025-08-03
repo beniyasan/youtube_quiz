@@ -44,7 +44,12 @@ export async function GET(request: NextRequest) {
           hasSupabaseKey: hasKey,
           url: hasUrl ? process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30) + '...' : null
         },
-        cookies: request.headers.get('cookie')?.includes('supabase') || false
+        cookies: {
+          hasCookies: !!request.headers.get('cookie'),
+          cookieString: request.headers.get('cookie') || null,
+          hasSupabaseCookies: request.headers.get('cookie')?.includes('supabase') || false,
+          allCookieNames: request.headers.get('cookie')?.split(';').map(c => c.trim().split('=')[0]) || []
+        }
       }
     });
 

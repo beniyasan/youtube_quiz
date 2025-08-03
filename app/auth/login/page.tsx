@@ -32,11 +32,14 @@ export default function LoginPage() {
     // ログイン成功後のセッション状態をログ出力
     console.log('Login successful:', data)
     
-    // セッション確認
-    const { data: sessionData } = await supabase.auth.getSession()
-    console.log('Session after login:', sessionData)
+    // セッション確認（少し待ってから）
+    setTimeout(async () => {
+      const { data: sessionData } = await supabase.auth.getSession()
+      console.log('Session after login (delayed):', sessionData)
+    }, 100)
 
-    router.push('/dashboard')
+    // ページをリロードしてセッションを確実に反映
+    window.location.href = '/dashboard'
   }
 
   return (
