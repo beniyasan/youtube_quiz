@@ -34,14 +34,15 @@ export class QuizSessionService {
       throw new Error('認証が必要です');
     }
 
-    // セッション作成
+    // セッション作成（既存quiz_roomsテーブルを使用）
     const { data, error } = await this.supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .insert({
         playlist_id: playlistId,
         room_code: roomCodeData,
-        host_user_id: user.id,
-        settings: settings as Database['public']['Tables']['quiz_sessions']['Insert']['settings']
+        host_id: user.id,
+        max_players: settings.maxParticipants,
+        settings: settings as any
       })
       .select()
       .single();
@@ -61,7 +62,7 @@ export class QuizSessionService {
    */
   async getSession(sessionId: string): Promise<QuizSession | null> {
     const { data, error } = await this.supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .select('*')
       .eq('id', sessionId)
       .single();
@@ -81,7 +82,7 @@ export class QuizSessionService {
    */
   async getSessionByRoomCode(roomCode: string): Promise<QuizSession | null> {
     const { data, error } = await this.supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .select('*')
       .eq('room_code', roomCode.toUpperCase())
       .single();
@@ -104,7 +105,7 @@ export class QuizSessionService {
     status: 'waiting' | 'playing' | 'finished'
   ): Promise<void> {
     const { error } = await this.supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .update({ status })
       .eq('id', sessionId);
 
@@ -121,7 +122,7 @@ export class QuizSessionService {
     questionIndex: number
   ): Promise<void> {
     const { error } = await this.supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .update({ current_question_index: questionIndex })
       .eq('id', sessionId);
 
@@ -135,7 +136,7 @@ export class QuizSessionService {
    */
   async deleteSession(sessionId: string): Promise<void> {
     const { error } = await this.supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .delete()
       .eq('id', sessionId);
 
@@ -154,9 +155,9 @@ export class QuizSessionService {
     }
 
     const { data, error } = await this.supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .select('*')
-      .eq('host_user_id', user.id)
+      .eq('host_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

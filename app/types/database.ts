@@ -8,7 +8,7 @@ export interface Database {
           id: string;
           playlist_id: string;
           room_code: string;
-          host_user_id: string;
+          host_id: string;
           status: 'waiting' | 'playing' | 'finished';
           current_question_index: number;
           settings: QuizSettingsDb;
@@ -19,7 +19,7 @@ export interface Database {
           id?: string;
           playlist_id: string;
           room_code: string;
-          host_user_id: string;
+          host_id: string;
           status?: 'waiting' | 'playing' | 'finished';
           current_question_index?: number;
           settings?: QuizSettingsDb;
@@ -30,7 +30,7 @@ export interface Database {
           id?: string;
           playlist_id?: string;
           room_code?: string;
-          host_user_id?: string;
+          host_id?: string;
           status?: 'waiting' | 'playing' | 'finished';
           current_question_index?: number;
           settings?: QuizSettingsDb;

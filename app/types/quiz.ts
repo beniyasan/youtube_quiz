@@ -2,14 +2,16 @@
 
 export interface QuizSession {
   id: string;
+  host_id: string; // 既存テーブルのカラム名
   playlist_id: string;
   room_code: string;
-  host_user_id: string;
   status: 'waiting' | 'playing' | 'finished';
+  max_players: number; // 既存テーブルのカラム名
   current_question_index: number;
   settings: QuizSettings;
   created_at: string;
-  updated_at: string;
+  started_at?: string;
+  finished_at?: string;
 }
 
 export interface QuizSettings {
@@ -25,36 +27,38 @@ export interface QuizSettings {
 
 export interface QuizParticipant {
   id: string;
-  session_id: string;
+  room_id: string; // 既存テーブルのカラム名
   user_id: string;
   display_name: string;
   score: number;
-  is_eliminated: boolean;
   joined_at: string;
+  is_buzzer_pressed?: boolean;
+  buzzer_pressed_at?: string;
 }
 
 export interface QuizQuestion {
   id: string;
-  session_id: string;
+  room_id: string; // 既存テーブルのカラム名
   video_id: string;
   video_title: string;
-  correct_answers: string[];
-  audio_start_time: number; // seconds
-  video_start_time: number; // seconds
+  question_text: string; // 既存テーブルのカラム名
+  correct_answer: string; // 既存テーブルのカラム名（単数形）
+  correct_answers: string[]; // 追加カラム
+  options: any; // 既存テーブルのカラム名
+  time_limit: number; // 既存テーブルのカラム名
   question_order: number;
   created_at: string;
 }
 
 export interface QuizAnswer {
   id: string;
-  session_id: string;
   question_id: string;
   participant_id: string;
-  answer_text: string;
+  answer: string; // 既存テーブルのカラム名
   is_correct: boolean;
   answered_at: string;
-  stage_when_answered: 1 | 2 | 3;
-  points_awarded: number;
+  stage?: 1 | 2 | 3; // 追加カラム
+  points_awarded?: number; // 追加カラム
 }
 
 // ゲーム状態管理

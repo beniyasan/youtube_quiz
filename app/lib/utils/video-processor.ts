@@ -111,12 +111,14 @@ export class VideoProcessor {
       const videoStartTime = this.generateRandomStartTime(video.duration);
       
       questions.push({
-        session_id: sessionId,
+        room_id: sessionId, // 既存テーブルのカラム名
         video_id: video.id,
         video_title: video.title,
-        correct_answers: correctAnswers,
-        audio_start_time: audioStartTime,
-        video_start_time: videoStartTime,
+        question_text: `この動画のタイトルに含まれる競走馬名またはレース名は？`, // 既存テーブルの必須カラム
+        correct_answer: correctAnswers[0], // 既存テーブルの必須カラム（単数形）
+        correct_answers: correctAnswers, // 追加カラム（複数形）
+        options: {}, // 既存テーブルの必須カラム
+        time_limit: 30, // 既存テーブルの必須カラム
         question_order: index
       });
     });

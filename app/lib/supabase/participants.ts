@@ -29,7 +29,7 @@ export class ParticipantService {
     const { data: existingParticipant } = await this.supabase
       .from('quiz_participants')
       .select('*')
-      .eq('session_id', sessionId)
+      .eq('room_id', sessionId)
       .eq('user_id', user.id)
       .single();
 
@@ -39,7 +39,7 @@ export class ParticipantService {
 
     // セッション情報を取得して参加人数制限をチェック
     const { data: session, error: sessionError } = await this.supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .select('*, quiz_participants(count)')
       .eq('id', sessionId)
       .single();
@@ -56,7 +56,7 @@ export class ParticipantService {
       ? session.quiz_participants.length 
       : session.quiz_participants?.count || 0;
 
-    if (currentParticipants >= session.settings.maxParticipants) {
+    if (currentParticipants >= session.max_players) {
       throw new Error('参加人数が上限に達しています');
     }
 
@@ -64,7 +64,7 @@ export class ParticipantService {
     const { data: participant, error } = await this.supabase
       .from('quiz_participants')
       .insert({
-        session_id: sessionId,
+        room_id: sessionId,
         user_id: user.id,
         display_name: displayName
       })
@@ -93,7 +93,7 @@ export class ParticipantService {
     const { error } = await this.supabase
       .from('quiz_participants')
       .delete()
-      .eq('session_id', sessionId)
+      .eq('room_id', sessionId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -108,7 +108,7 @@ export class ParticipantService {
     const { data, error } = await this.supabase
       .from('quiz_participants')
       .select('*')
-      .eq('session_id', sessionId)
+      .eq('room_id', sessionId)
       .order('joined_at', { ascending: true });
 
     if (error) {
@@ -137,14 +137,8 @@ export class ParticipantService {
    * 参加者を失格にする
    */
   async eliminateParticipant(participantId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('quiz_participants')
-      .update({ is_eliminated: true })
-      .eq('id', participantId);
-
-    if (error) {
-      throw new Error('失格処理に失敗しました: ' + error.message);
-    }
+    // 既存テーブルにis_eliminatedカラムがないため、機能を無効化
+    throw new Error('失格機能は未実装です');
   }
 
   /**
@@ -179,7 +173,7 @@ export class ParticipantService {
     const { data, error } = await this.supabase
       .from('quiz_participants')
       .select('*')
-      .eq('session_id', sessionId)
+      .eq('room_id', sessionId)
       .eq('user_id', user.id)
       .single();
 

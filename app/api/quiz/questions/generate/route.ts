@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     // セッション情報取得
     const { data: session, error: sessionError } = await supabase
-      .from('quiz_sessions')
+      .from('quiz_rooms')
       .select('*, playlists(*)')
       .eq('id', sessionId)
       .single();
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (session.host_user_id !== user.id) {
+    if (session.host_id !== user.id) {
       return NextResponse.json(
         { error: 'ホストのみが問題を生成できます' },
         { status: 403 }
@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
 
     // プレイリストの動画一覧取得
     const { data: playlistVideos, error: videosError } = await supabase
-      .from('playlist_videos')
+      .from('youtube_videos')
       .select('*')
       .eq('playlist_id', session.playlist_id)
-      .order('order_index');
+      .order('id');
 
     if (videosError) {
       throw new Error('プレイリスト動画取得に失敗しました');
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     const { error: deleteError } = await supabase
       .from('quiz_questions')
       .delete()
-      .eq('session_id', sessionId);
+      .eq('room_id', sessionId);
 
     if (deleteError) {
       console.error('Existing questions deletion error:', deleteError);
