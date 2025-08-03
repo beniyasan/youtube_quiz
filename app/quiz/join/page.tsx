@@ -18,10 +18,10 @@ export default function JoinQuizPage() {
   const checkAuth = async () => {
     try {
       const supabase = createClient()
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      if (userError || !user) {
-        console.log('User not authenticated, redirecting to login')
+      if (sessionError || !session || !session.user) {
+        console.log('No session found, redirecting to login')
         router.push('/auth/login')
         return
       }

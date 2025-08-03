@@ -28,16 +28,17 @@ export class QuizSessionService {
       throw new Error('ルームコード生成に失敗しました');
     }
 
-    // 現在のユーザー取得
-    const { data: { user }, error: userError } = await this.supabase.auth.getUser();
-    if (userError) {
-      console.error('Auth error:', userError);
-      throw new Error(`認証エラー: ${userError.message}`);
+    // 現在のセッションとユーザー取得
+    const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw new Error(`認証エラー: ${sessionError.message}`);
     }
-    if (!user) {
-      console.error('No user found');
-      throw new Error('ログインが必要です。ログインページでログインしてください。');
+    if (!session || !session.user) {
+      console.error('No session or user found');
+      throw new Error('ログインセッションが見つかりません。再度ログインしてください。');
     }
+    const user = session.user;
 
     // セッション作成（既存quiz_roomsテーブルを使用）
     const { data, error } = await this.supabase
@@ -154,10 +155,11 @@ export class QuizSessionService {
    * ユーザーがホストしているセッション一覧を取得
    */
   async getHostedSessions(): Promise<QuizSession[]> {
-    const { data: { user }, error: userError } = await this.supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('認証が必要です');
+    const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+    if (sessionError || !session || !session.user) {
+      throw new Error('ログインセッションが必要です');
     }
+    const user = session.user;
 
     const { data, error } = await this.supabase
       .from('quiz_rooms')

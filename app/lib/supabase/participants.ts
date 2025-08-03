@@ -19,16 +19,17 @@ export class ParticipantService {
     sessionId: string,
     displayName: string
   ): Promise<JoinSessionResponse> {
-    // 現在のユーザー取得
-    const { data: { user }, error: userError } = await this.supabase.auth.getUser();
-    if (userError) {
-      console.error('Auth error:', userError);
-      throw new Error(`認証エラー: ${userError.message}`);
+    // 現在のセッションとユーザー取得
+    const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      throw new Error(`認証エラー: ${sessionError.message}`);
     }
-    if (!user) {
-      console.error('No user found');
-      throw new Error('ログインが必要です。ログインページでログインしてください。');
+    if (!session || !session.user) {
+      console.error('No session or user found');
+      throw new Error('ログインセッションが見つかりません。再度ログインしてください。');
     }
+    const user = session.user;
 
     // 既に参加しているかチェック
     const { data: existingParticipant } = await this.supabase
@@ -90,10 +91,11 @@ export class ParticipantService {
    * セッションから退出
    */
   async leaveSession(sessionId: string): Promise<void> {
-    const { data: { user }, error: userError } = await this.supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('認証が必要です');
+    const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+    if (sessionError || !session || !session.user) {
+      throw new Error('ログインセッションが必要です');
     }
+    const user = session.user;
 
     const { error } = await this.supabase
       .from('quiz_participants')
@@ -170,10 +172,11 @@ export class ParticipantService {
    * 現在のユーザーの参加状況を取得
    */
   async getCurrentUserParticipation(sessionId: string): Promise<QuizParticipant | null> {
-    const { data: { user }, error: userError } = await this.supabase.auth.getUser();
-    if (userError || !user) {
+    const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+    if (sessionError || !session || !session.user) {
       return null;
     }
+    const user = session.user;
 
     const { data, error } = await this.supabase
       .from('quiz_participants')
