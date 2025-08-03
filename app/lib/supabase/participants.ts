@@ -43,26 +43,26 @@ export class ParticipantService {
       throw new Error('既にこのセッションに参加しています');
     }
 
-    // セッション情報を取得して参加人数制限をチェック
-    const { data: session, error: sessionError } = await this.supabase
+    // クイズルーム情報を取得して参加人数制限をチェック
+    const { data: quizRoom, error: roomError } = await this.supabase
       .from('quiz_rooms')
       .select('*, quiz_participants(count)')
       .eq('id', sessionId)
       .single();
 
-    if (sessionError) {
+    if (roomError) {
       throw new Error('セッションが見つかりません');
     }
 
-    if (session.status !== 'waiting') {
+    if (quizRoom.status !== 'waiting') {
       throw new Error('このセッションは既に開始されています');
     }
 
-    const currentParticipants = Array.isArray(session.quiz_participants) 
-      ? session.quiz_participants.length 
-      : session.quiz_participants?.count || 0;
+    const currentParticipants = Array.isArray(quizRoom.quiz_participants) 
+      ? quizRoom.quiz_participants.length 
+      : quizRoom.quiz_participants?.count || 0;
 
-    if (currentParticipants >= session.max_players) {
+    if (currentParticipants >= quizRoom.max_players) {
       throw new Error('参加人数が上限に達しています');
     }
 
@@ -83,7 +83,7 @@ export class ParticipantService {
 
     return {
       participant: participant as QuizParticipant,
-      session: session as any // TODO: 型を修正
+      session: quizRoom as any // TODO: 型を修正
     };
   }
 
