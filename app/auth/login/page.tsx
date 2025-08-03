@@ -6,7 +6,7 @@ import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { Label } from "@/app/components/ui/label"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
-import { EyeIcon, EyeOffIcon } from "@heroicons/react/24/outline"
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"
 import { createClient } from '@/app/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -96,7 +96,7 @@ export default function LoginForm() {
                 className="absolute inset-y-0 right-0 flex items-center pr-3"
               >
                 {showPassword ? (
-                  <EyeOffIcon className="h-5 w-5 text-gray-400" />
+                  <EyeSlashIcon className="h-5 w-5 text-gray-400" />
                 ) : (
                   <EyeIcon className="h-5 w-5 text-gray-400" />
                 )}
