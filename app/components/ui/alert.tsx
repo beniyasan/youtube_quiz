@@ -10,10 +10,10 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
       <div
         ref={ref}
         role="alert"
-        className={`relative w-full rounded-lg border p-4 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg+div]:translate-y-[-3px] [&:has(svg)]:pl-11 ${
+        className={`relative w-full rounded-lg border p-4 ${
           variant === "destructive"
-            ? "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive"
-            : ""
+            ? "border-red-200 bg-red-50 text-red-600"
+            : "border-gray-200 bg-gray-50 text-gray-900"
         } ${className || ''}`}
         {...props}
       />
