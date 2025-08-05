@@ -19,6 +19,7 @@ CREATE TABLE quiz_participants (
   display_name VARCHAR(50) NOT NULL,
   score INTEGER DEFAULT 0,
   is_eliminated BOOLEAN DEFAULT FALSE,
+  is_connected BOOLEAN DEFAULT TRUE,
   joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
