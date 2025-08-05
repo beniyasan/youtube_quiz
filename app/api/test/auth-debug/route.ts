@@ -1,65 +1,55 @@
-// 認証状態デバッグ用API
-
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/app/lib/supabase/client';
+import { createClient } from '@/app/lib/supabase/api'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
-
-    console.log('=== Auth Debug Start ===');
-
-    // セッション取得をテスト
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    console.log('Session data:', sessionData);
-    console.log('Session error:', sessionError);
-
-    // ユーザー取得をテスト
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    console.log('User data:', userData);
-    console.log('User error:', userError);
-
-    // 環境変数チェック
-    const hasUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const hasKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    console.log('Environment check:', { hasUrl, hasKey });
-
-    return NextResponse.json({
-      success: true,
-      debug: {
-        session: {
-          hasSession: !!sessionData.session,
-          hasUser: !!sessionData.session?.user,
-          userId: sessionData.session?.user?.id || null,
-          error: sessionError?.message || null
-        },
-        user: {
-          hasUser: !!userData.user,
-          userId: userData.user?.id || null,
-          error: userError?.message || null
-        },
-        environment: {
-          hasSupabaseUrl: hasUrl,
-          hasSupabaseKey: hasKey,
-          url: hasUrl ? process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30) + '...' : null
-        },
-        cookies: {
-          hasCookies: !!request.headers.get('cookie'),
-          cookieString: request.headers.get('cookie') || null,
-          hasSupabaseCookies: request.headers.get('cookie')?.includes('supabase') || false,
-          allCookieNames: request.headers.get('cookie')?.split(';').map(c => c.trim().split('=')[0]) || []
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Auth debug error:', error);
+    const supabase = await createClient()
     
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      details: error
-    }, { status: 500 });
+    // Get user session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    // Get cookies info
+    const cookies = request.headers.get('cookie') || ''
+    const cookieNames = cookies.split(';').map(c => c.trim().split('=')[0]).filter(Boolean)
+    const hasSupabaseCookies = cookieNames.some(name => 
+      name.includes('sb-') && name.includes('-auth-token')
+    )
+    
+    const debug = {
+      session: {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userId: session?.user?.id || null,
+        error: sessionError?.message || null
+      },
+      user: {
+        hasUser: !!user,
+        userId: user?.id || null,
+        error: userError?.message || null
+      },
+      environment: {
+        hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 
+          process.env.NEXT_PUBLIC_SUPABASE_URL.substring(0, 30) + '...' : 
+          'Not set'
+      },
+      cookies: {
+        hasCookies: cookies.length > 0,
+        cookieString: cookies.substring(0, 200) + (cookies.length > 200 ? '...' : ''),
+        hasSupabaseCookies,
+        allCookieNames: cookieNames
+      }
+    }
+    
+    return NextResponse.json({ success: true, debug })
+  } catch (error: any) {
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message,
+      stack: error.stack 
+    }, { status: 500 })
   }
 }
