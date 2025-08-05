@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get user session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
