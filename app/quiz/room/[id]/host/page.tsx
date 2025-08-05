@@ -7,10 +7,10 @@ import { createClient } from '@/app/lib/supabase/client'
 interface QuizSession {
   id: string
   room_code: string
-  status: 'waiting' | 'active' | 'completed'
+  status: 'waiting' | 'playing' | 'finished'
   current_question_index: number
   settings: any
-  playlist: {
+  playlists: {
     id: string
     name: string
     description: string
@@ -49,7 +49,7 @@ export default function HostPage() {
         .from('quiz_sessions')
         .select(`
           *,
-          playlist:playlists(id, name, description)
+          playlists(id, name, description)
         `)
         .eq('id', sessionId)
         .single()
@@ -88,7 +88,7 @@ export default function HostPage() {
       }
       
       // セッション状態を更新
-      setSession(prev => prev ? { ...prev, status: 'active' } : null)
+      setSession(prev => prev ? { ...prev, status: 'playing' } : null)
       
     } catch (err) {
       console.error('Error starting quiz:', err)
@@ -133,7 +133,7 @@ export default function HostPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                {session.playlist.name}
+                {session.playlists.name}
               </h1>
               <p className="text-gray-600">ルームコード: <span className="font-mono text-2xl font-bold text-purple-600">{session.room_code}</span></p>
             </div>
@@ -141,11 +141,11 @@ export default function HostPage() {
               <div className="text-sm text-gray-500">ステータス</div>
               <div className={`text-lg font-bold ${
                 session.status === 'waiting' ? 'text-yellow-600' :
-                session.status === 'active' ? 'text-green-600' :
+                session.status === 'playing' ? 'text-green-600' :
                 'text-gray-600'
               }`}>
                 {session.status === 'waiting' ? '待機中' :
-                 session.status === 'active' ? '進行中' :
+                 session.status === 'playing' ? '進行中' :
                  '完了'}
               </div>
             </div>
@@ -234,7 +234,7 @@ export default function HostPage() {
             )}
 
             {/* 進行中の場合の情報 */}
-            {session.status === 'active' && (
+            {session.status === 'playing' && (
               <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">進行状況</h3>
                 <div className="space-y-2">
