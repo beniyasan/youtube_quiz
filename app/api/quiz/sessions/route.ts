@@ -49,12 +49,37 @@ export async function POST(request: NextRequest) {
 
     console.log('Authenticated user:', user.id);
 
+    // プレイリスト存在確認
+    const { data: playlistData, error: playlistError } = await supabase
+      .from('playlists')
+      .select('id, name')
+      .eq('id', playlistId)
+      .single();
+
+    if (playlistError) {
+      console.error('Playlist check error:', playlistError);
+      return NextResponse.json(
+        { 
+          error: '指定されたプレイリストが見つかりません', 
+          details: playlistError.message || playlistError.code || 'Unknown error'
+        },
+        { status: 404 }
+      );
+    }
+
+    console.log('Playlist found:', playlistData);
+
     // ルームコード生成
     const { data: roomCodeData, error: roomCodeError } = await supabase.rpc('generate_room_code');
     if (roomCodeError) {
       console.error('Room code generation error:', roomCodeError);
+      console.error('Full room code error:', JSON.stringify(roomCodeError, null, 2));
       return NextResponse.json(
-        { error: 'ルームコード生成に失敗しました: ' + roomCodeError.message },
+        { 
+          error: 'ルームコード生成に失敗しました', 
+          details: roomCodeError.message || roomCodeError.code || 'Unknown error',
+          fullError: roomCodeError
+        },
         { status: 500 }
       );
     }
@@ -75,8 +100,13 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Session creation error:', error);
+      console.error('Full error object:', JSON.stringify(error, null, 2));
       return NextResponse.json(
-        { error: 'セッション作成に失敗しました: ' + error.message },
+        { 
+          error: 'セッション作成に失敗しました', 
+          details: error.message || error.code || 'Unknown error',
+          fullError: error
+        },
         { status: 500 }
       );
     }
