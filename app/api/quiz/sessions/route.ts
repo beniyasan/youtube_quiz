@@ -1,8 +1,7 @@
 // クイズセッション作成API
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createServerClient } from '@/app/lib/supabase/server';
-import { createClient as createBrowserClient } from '@/app/lib/supabase/client';
+import { createClient } from '@/app/lib/supabase/api';
 import type { QuizSettings } from '@/app/types/quiz';
 
 export async function POST(request: NextRequest) {
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest) {
     };
 
     // サーバーサイドでの認証とセッション作成
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // 認証チェック
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -55,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (roomCodeError) {
       console.error('Room code generation error:', roomCodeError);
       return NextResponse.json(
-        { error: 'ルームコード生成に失敗しました' },
+        { error: 'ルームコード生成に失敗しました: ' + roomCodeError.message },
         { status: 500 }
       );
     }
@@ -64,12 +63,11 @@ export async function POST(request: NextRequest) {
 
     // セッション作成
     const { data, error } = await supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .insert({
         playlist_id: playlistId,
         room_code: roomCodeData,
-        host_id: user.id,
-        max_players: quizSettings.maxParticipants,
+        host_user_id: user.id,
         settings: quizSettings as any
       })
       .select()
@@ -108,7 +106,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerClient();
+    const supabase = await createClient();
     
     // 認証チェック
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -121,9 +119,9 @@ export async function GET(request: NextRequest) {
 
     // ホストしているセッション一覧取得
     const { data, error } = await supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .select('*')
-      .eq('host_id', user.id)
+      .eq('host_user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
