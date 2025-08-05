@@ -1,32 +1,74 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  // 認証が必要なパスを定義
-  const protectedPaths = ['/dashboard', '/playlist', '/quiz']
-  const authPaths = ['/auth/login', '/auth/register', '/auth/verify-email']
-  const publicPaths = ['/']
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  const path = request.nextUrl.pathname
-
-  // 認証が必要なパスの場合、クライアントサイドで認証チェックを行う
-  if (protectedPaths.some(p => path.startsWith(p))) {
-    // Supabaseの認証cookieがあるかチェック
-    const authCookie = request.cookies.get('sb-access-token') || 
-                      request.cookies.get('supabase-auth-token') ||
-                      request.cookies.getAll().find(cookie => 
-                        cookie.name.includes('supabase') || cookie.name.includes('auth')
-                      )
-    
-    if (!authCookie) {
-      return NextResponse.redirect(new URL('/auth/login', request.url))
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) {
+          return request.cookies.get(name)?.value
+        },
+        set(name, value, options) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name, options) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
     }
-  }
+  )
 
-  return NextResponse.next()
+  await supabase.auth.getUser()
+
+  return response
 }
 
 export const config = {
   matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
