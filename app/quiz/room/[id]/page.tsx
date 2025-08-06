@@ -92,14 +92,25 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   }
 
   const loadParticipants = async () => {
+    console.log('Loading participants for room:', roomId)
     const supabase = createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('quiz_participants')
       .select('*')
       .eq('room_id', roomId)
 
+    console.log('Participants query result:', { data, error, roomId })
+    
+    if (error) {
+      console.error('Error loading participants:', error)
+    }
+    
     if (data) {
+      console.log('Setting participants:', data)
       setParticipants(data as any)
+    } else {
+      console.log('No participant data received')
+      setParticipants([])
     }
   }
 
