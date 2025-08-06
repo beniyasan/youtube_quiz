@@ -1,7 +1,7 @@
 // クイズセッション作成API
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/app/lib/supabase/api';
+import { createClient } from '@/app/lib/supabase/server';
 import type { QuizSettings } from '@/app/types/quiz';
 
 export async function POST(request: NextRequest) {
@@ -137,6 +137,8 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
+    const { searchParams } = new URL(request.url);
+    const roomCode = searchParams.get('roomCode');
     
     // 認証チェック
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -145,6 +147,32 @@ export async function GET(request: NextRequest) {
         { error: 'ログインが必要です' },
         { status: 401 }
       );
+    }
+
+    // ルームコード検索の場合
+    if (roomCode) {
+      const { data: session, error } = await supabase
+        .from('quiz_sessions')
+        .select('id, room_code, status, max_players, created_at')
+        .eq('room_code', roomCode.toUpperCase())
+        .single();
+
+      if (error) {
+        console.error('Room code search error:', error);
+        return NextResponse.json(
+          { error: 'セッションが見つかりません' },
+          { status: 404 }
+        );
+      }
+
+      if (!session) {
+        return NextResponse.json(
+          { error: 'セッションが見つかりません' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({ sessionId: session.id, session });
     }
 
     // ホストしているセッション一覧取得
