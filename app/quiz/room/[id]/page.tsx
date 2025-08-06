@@ -104,6 +104,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   }
 
   const setupRealtimeSubscription = () => {
+    console.log('Setting up realtime subscription for room:', roomId)
     const supabase = createClient()
     const newChannel = supabase
       .channel(`room:${roomId}`)
@@ -115,7 +116,8 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
           table: 'quiz_participants',
           filter: `room_id=eq.${roomId}`,
         },
-        () => {
+        (payload) => {
+          console.log('Realtime participant change:', payload)
           loadParticipants()
         }
       )
@@ -127,7 +129,8 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
           table: 'quiz_sessions',
           filter: `id=eq.${roomId}`,
         },
-        () => {
+        (payload) => {
+          console.log('Realtime session change:', payload)
           loadRoom()
         }
       )
@@ -141,7 +144,9 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
         setShowResults(true)
         loadParticipants()
       })
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status)
+      })
 
     setChannel(newChannel)
   }
