@@ -2,8 +2,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { QuizSessionService } from '@/app/lib/supabase/quiz-sessions';
-import { ParticipantService } from '@/app/lib/supabase/participants';
-import { createClient } from '@/app/lib/supabase/client';
+import { ParticipantServerService } from '@/app/lib/supabase/participants-server';
+import { createClient } from '@/app/lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function GET(
     const { id: sessionId } = await context.params;
     
     const sessionService = new QuizSessionService();
-    const participantService = new ParticipantService();
+    const participantService = new ParticipantServerService();
     
     // セッション情報取得
     const session = await sessionService.getSession(sessionId);
@@ -28,7 +28,7 @@ export async function GET(
     const participants = await participantService.getParticipants(sessionId);
 
     // 問題一覧取得
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: questions, error: questionsError } = await supabase
       .from('quiz_questions')
       .select('*')

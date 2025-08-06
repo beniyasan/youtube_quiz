@@ -1,7 +1,7 @@
 // セッション参加API
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ParticipantService } from '@/app/lib/supabase/participants';
+import { ParticipantServerService } from '@/app/lib/supabase/participants-server';
 
 export async function POST(
   request: NextRequest,
@@ -27,7 +27,7 @@ export async function POST(
       );
     }
 
-    const participantService = new ParticipantService();
+    const participantService = new ParticipantServerService();
     const result = await participantService.joinSession(sessionId, displayName.trim());
 
     return NextResponse.json(result);
@@ -55,7 +55,7 @@ export async function DELETE(
   try {
     const { id: sessionId } = await context.params;
 
-    const participantService = new ParticipantService();
+    const participantService = new ParticipantServerService();
     await participantService.leaveSession(sessionId);
 
     return NextResponse.json({ success: true });
