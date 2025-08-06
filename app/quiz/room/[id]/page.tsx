@@ -34,14 +34,21 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
 
   useEffect(() => {
+    console.log('=== PARAMS EFFECT ===')
     params.then(({ id }) => {
+      console.log('Room ID from params:', id)
       setRoomId(id)
     })
   }, [params])
 
   useEffect(() => {
-    if (!roomId) return
+    console.log('=== ROOM ID EFFECT ===', roomId)
+    if (!roomId) {
+      console.log('No roomId, returning early')
+      return
+    }
     
+    console.log('Starting loadRoom and setupRealtimeSubscription for room:', roomId)
     loadRoom()
     setupRealtimeSubscription()
 
@@ -63,13 +70,18 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   }, [timeLeft, currentQuestion])
 
   const loadRoom = async () => {
+    console.log('=== LOAD ROOM START ===')
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    console.log('User authentication check:', user ? user.id : 'No user')
+    
     if (!user) {
+      console.log('No user found, redirecting to login')
       router.push('/auth/login')
       return
     }
 
+    console.log('Loading room data for room:', roomId)
     const { data: roomData } = await supabase
       .from('quiz_sessions')
       .select(`
@@ -82,12 +94,18 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
       .eq('id', roomId)
       .single()
 
+    console.log('Room data loaded:', roomData)
+    
     if (roomData) {
       setRoom(roomData)
-      setIsHost(roomData.host_user_id === user.id)
+      const isHostUser = roomData.host_user_id === user.id
+      console.log('Is host user:', isHostUser, '| Host user ID:', roomData.host_user_id, '| Current user ID:', user.id)
+      setIsHost(isHostUser)
     }
 
+    console.log('About to load participants...')
     await loadParticipants()
+    console.log('Setting loading to false')
     setLoading(false)
   }
 
@@ -327,6 +345,12 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
           <h2 className="text-2xl font-bold mb-6 text-gray-800">
             🏆 参加者 ({participants.length}/{room?.settings?.maxParticipants || 10})
           </h2>
+          {/* Debug info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mb-4 p-2 bg-yellow-100 text-xs">
+              Debug: participants.length={participants.length}, loading={loading.toString()}, roomId={roomId}
+            </div>
+          )}
           <div className="space-y-3">
             {participants.length > 0 ? (
               participants
