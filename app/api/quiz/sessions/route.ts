@@ -70,23 +70,46 @@ export async function POST(request: NextRequest) {
     console.log('Playlist found:', playlistData);
 
     // ルームコード生成
-    const { data: roomCodeData, error: roomCodeError } = await supabase.rpc('generate_room_code');
-    if (roomCodeError) {
-      console.error('Room code generation error:', roomCodeError);
-      console.error('Full room code error:', JSON.stringify(roomCodeError, null, 2));
+    console.log('Starting room code generation...');
+    let roomCodeData: string;
+    try {
+      const { data: roomCode, error: roomCodeError } = await supabase.rpc('generate_room_code');
+      if (roomCodeError) {
+        console.error('Room code generation error:', roomCodeError);
+        console.error('Full room code error:', JSON.stringify(roomCodeError, null, 2));
+        return NextResponse.json(
+          { 
+            error: 'ルームコード生成に失敗しました', 
+            details: roomCodeError.message || roomCodeError.code || 'Unknown error',
+            fullError: roomCodeError,
+            step: 'room_code_generation'
+          },
+          { status: 500 }
+        );
+      }
+
+      roomCodeData = roomCode;
+      console.log('Generated room code:', roomCodeData);
+    } catch (rpcError) {
+      console.error('RPC call failed:', rpcError);
       return NextResponse.json(
         { 
-          error: 'ルームコード生成に失敗しました', 
-          details: roomCodeError.message || roomCodeError.code || 'Unknown error',
-          fullError: roomCodeError
+          error: 'ルームコード生成RPCに失敗しました', 
+          details: rpcError instanceof Error ? rpcError.message : 'Unknown RPC error',
+          step: 'rpc_call'
         },
         { status: 500 }
       );
     }
 
-    console.log('Generated room code:', roomCodeData);
-
     // セッション作成
+    console.log('Starting session creation with:', {
+      playlist_id: playlistId,
+      room_code: roomCodeData,
+      host_user_id: user.id,
+      settings: quizSettings
+    });
+    
     const { data, error } = await supabase
       .from('quiz_sessions')
       .insert({
@@ -105,7 +128,8 @@ export async function POST(request: NextRequest) {
         { 
           error: 'セッション作成に失敗しました', 
           details: error.message || error.code || 'Unknown error',
-          fullError: error
+          fullError: error,
+          step: 'session_creation'
         },
         { status: 500 }
       );
