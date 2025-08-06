@@ -137,6 +137,26 @@ export async function POST(request: NextRequest) {
 
     console.log('Session created:', data);
 
+    // ホストを自動的に参加者として登録
+    try {
+      const { error: participantError } = await supabase
+        .from('quiz_participants')
+        .insert({
+          room_id: data.id,
+          user_id: user.id,
+          display_name: user.email?.split('@')[0] || 'Host' // メールアドレスの@より前をデフォルト名に
+        });
+
+      if (participantError) {
+        console.error('Failed to add host as participant:', participantError);
+        // エラーでもセッション作成は成功とする
+      } else {
+        console.log('Host added as participant');
+      }
+    } catch (participantErr) {
+      console.error('Error adding host as participant:', participantErr);
+    }
+
     return NextResponse.json({
       sessionId: data.id,
       roomCode: data.room_code
