@@ -1,6 +1,15 @@
 -- 段階的にRLSポリシーを修正
 
--- まずはquiz_participantsテーブルのポリシーのみ修正
+-- quiz_sessionsテーブルのSELECTポリシーを修正
+DROP POLICY IF EXISTS "Users can view quiz sessions they participate in" ON quiz_sessions;
+
+CREATE POLICY "Users can view quiz sessions they participate in" ON quiz_sessions
+  FOR SELECT USING (
+    host_user_id = auth.uid() OR 
+    id IN (SELECT room_id FROM quiz_participants WHERE user_id = auth.uid())
+  );
+
+-- quiz_participantsテーブルのポリシーを修正
 DROP POLICY IF EXISTS "Users can view participants in their sessions" ON quiz_participants;
 
 CREATE POLICY "Users can view participants in their sessions" ON quiz_participants
@@ -42,6 +51,33 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql;
+
+-- generate_room_code関数を修正してRLSの影響を受けないようにする
+CREATE OR REPLACE FUNCTION generate_room_code()
+RETURNS TEXT 
+LANGUAGE plpgsql
+SECURITY DEFINER  -- この関数は定義者の権限で実行される
+AS $$
+DECLARE
+    chars TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    result TEXT := '';
+    i INTEGER;
+BEGIN
+    FOR i IN 1..6 LOOP
+        result := result || substr(chars, floor(random() * length(chars) + 1)::INTEGER, 1);
+    END LOOP;
+    
+    -- 重複チェック（SECURITY DEFINERでRLSを回避）
+    WHILE EXISTS(SELECT 1 FROM quiz_sessions WHERE room_code = result) LOOP
+        result := '';
+        FOR i IN 1..6 LOOP
+            result := result || substr(chars, floor(random() * length(chars) + 1)::INTEGER, 1);
+        END LOOP;
+    END LOOP;
+    
+    RETURN result;
+END;
+$$;
 
 -- リアルタイム機能を確実に有効化
 DO $$
