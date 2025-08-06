@@ -29,7 +29,7 @@ export class ParticipantServerService {
     const { data: existingParticipant } = await supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .single();
 
@@ -37,26 +37,33 @@ export class ParticipantServerService {
       throw new Error('既にこのセッションに参加しています');
     }
 
-    // クイズルーム情報を取得して参加人数制限をチェック
-    const { data: quizRoom, error: roomError } = await supabase
-      .from('quiz_rooms')
-      .select('*, quiz_participants(count)')
+    // クイズセッション情報を取得して参加人数制限をチェック
+    const { data: quizSession, error: sessionError2 } = await supabase
+      .from('quiz_sessions')
+      .select('id, status, settings')
       .eq('id', sessionId)
       .single();
 
-    if (roomError) {
+    if (sessionError2) {
       throw new Error('セッションが見つかりません');
     }
 
-    if (quizRoom.status !== 'waiting') {
+    if (quizSession.status !== 'waiting') {
       throw new Error('このセッションは既に開始されています');
     }
 
-    const currentParticipants = Array.isArray(quizRoom.quiz_participants) 
-      ? quizRoom.quiz_participants.length 
-      : quizRoom.quiz_participants?.count || 0;
+    // 現在の参加者数を取得
+    const { count: currentParticipants, error: countError } = await supabase
+      .from('quiz_participants')
+      .select('*', { count: 'exact', head: true })
+      .eq('session_id', sessionId);
 
-    if (currentParticipants >= quizRoom.max_players) {
+    if (countError) {
+      console.error('Participant count error:', countError);
+    }
+
+    const maxParticipants = quizSession.settings?.maxParticipants || 10;
+    if ((currentParticipants || 0) >= maxParticipants) {
       throw new Error('参加人数が上限に達しています');
     }
 
@@ -64,7 +71,7 @@ export class ParticipantServerService {
     const { data: participant, error } = await supabase
       .from('quiz_participants')
       .insert({
-        room_id: sessionId,
+        session_id: sessionId,
         user_id: user.id,
         display_name: displayName
       })
@@ -77,7 +84,7 @@ export class ParticipantServerService {
 
     return {
       participant: participant as QuizParticipant,
-      session: quizRoom as any // TODO: 型を修正
+      session: quizSession as any // TODO: 型を修正
     };
   }
 
@@ -95,7 +102,7 @@ export class ParticipantServerService {
     const { error } = await supabase
       .from('quiz_participants')
       .delete()
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -111,7 +118,7 @@ export class ParticipantServerService {
     const { data, error } = await supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .order('joined_at', { ascending: true });
 
     if (error) {
@@ -135,7 +142,7 @@ export class ParticipantServerService {
     const { data, error } = await supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .single();
 
