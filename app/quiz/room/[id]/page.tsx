@@ -87,7 +87,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
       setIsHost(roomData.host_user_id === user.id)
     }
 
-    loadParticipants()
+    await loadParticipants()
     setLoading(false)
   }
 
@@ -107,7 +107,10 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
     
     if (data) {
       console.log('Setting participants:', data)
-      setParticipants(data as any)
+      setParticipants([]) // Clear first to force re-render
+      setTimeout(() => {
+        setParticipants(data as any)
+      }, 10)
     } else {
       console.log('No participant data received')
       setParticipants([])
@@ -325,27 +328,40 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
             🏆 参加者 ({participants.length}/{room?.settings?.maxParticipants || 10})
           </h2>
           <div className="space-y-3">
-            {participants
-              .sort((a, b) => b.score - a.score)
-              .map((participant, index) => (
-                <div
-                  key={participant.id}
-                  className="flex justify-between items-center p-4 rounded-xl bg-gradient-to-r from-white to-gray-50 shadow-md border border-gray-200"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold text-sm">
-                      {index + 1}
-                    </span>
-                    <span className="font-medium text-gray-800">{participant.display_name}</span>
-                    {participant.user_id === room?.host_user_id && (
-                      <span className="text-xs bg-gradient-to-r from-green-500 to-blue-500 text-white px-3 py-1 rounded-full font-medium">
-                        HOST
+            {participants.length > 0 ? (
+              participants
+                .sort((a, b) => b.score - a.score)
+                .map((participant, index) => (
+                  <div
+                    key={participant.id}
+                    className="flex justify-between items-center p-4 rounded-xl bg-gradient-to-r from-white to-gray-50 shadow-md border border-gray-200"
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold text-sm">
+                        {index + 1}
                       </span>
-                    )}
+                      <span className="font-medium text-gray-800">{participant.display_name}</span>
+                      {participant.user_id === room?.host_user_id && (
+                        <span className="text-xs bg-gradient-to-r from-green-500 to-blue-500 text-white px-3 py-1 rounded-full font-medium">
+                          HOST
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-bold text-lg text-blue-600">{participant.score}点</span>
                   </div>
-                  <span className="font-bold text-lg text-blue-600">{participant.score}点</span>
-                </div>
-              ))}
+                ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-2"></div>
+                    参加者を読み込んでいます...
+                  </div>
+                ) : (
+                  '参加者を待っています...'
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
