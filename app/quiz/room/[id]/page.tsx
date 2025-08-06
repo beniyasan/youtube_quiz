@@ -115,7 +115,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
     const { data, error } = await supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', roomId)
+      .eq('session_id', roomId)
 
     console.log('Participants query result:', { data, error, roomId })
     
@@ -146,7 +146,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
           event: '*',
           schema: 'public',
           table: 'quiz_participants',
-          filter: `room_id=eq.${roomId}`,
+          filter: `session_id=eq.${roomId}`,
         },
         (payload) => {
           console.log('Realtime participant change:', payload)
