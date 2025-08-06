@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/app/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import GradientLayout from '@/app/components/ui/GradientLayout'
 
 interface Participant {
   id: string
   user_id: string
+  display_name: string
   score: number
-  users: {
-    username: string
-  }
 }
 
 interface Question {
@@ -72,7 +71,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
     }
 
     const { data: roomData } = await supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .select(`
         *,
         playlists (
@@ -85,7 +84,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
 
     if (roomData) {
       setRoom(roomData)
-      setIsHost(roomData.host_id === user.id)
+      setIsHost(roomData.host_user_id === user.id)
     }
 
     loadParticipants()
@@ -96,10 +95,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
     const supabase = createClient()
     const { data } = await supabase
       .from('quiz_participants')
-      .select(`
-        *,
-        users (username)
-      `)
+      .select('*')
       .eq('room_id', roomId)
 
     if (data) {
@@ -128,7 +124,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'quiz_rooms',
+          table: 'quiz_sessions',
           filter: `id=eq.${roomId}`,
         },
         () => {
@@ -155,8 +151,8 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
 
     const supabase = createClient()
     await supabase
-      .from('quiz_rooms')
-      .update({ status: 'playing', started_at: new Date().toISOString() })
+      .from('quiz_sessions')
+      .update({ status: 'playing' })
       .eq('id', roomId)
 
     sendNextQuestion()
@@ -228,43 +224,59 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>読み込み中...</p>
-      </div>
+      <GradientLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+              <p className="text-lg font-medium text-gray-700">読み込み中...</p>
+            </div>
+          </div>
+        </div>
+      </GradientLayout>
     )
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">{room?.playlists?.name}</h1>
-            <div className="text-xl font-mono bg-gray-100 px-4 py-2 rounded">
-              コード: {room?.room_code}
+    <GradientLayout>
+      <div className="max-w-4xl mx-auto p-8">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 mb-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-800">
+              🎵 {room?.playlists?.name || 'クイズルーム'}
+            </h1>
+            <div className="text-xl font-mono bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 px-6 py-3 rounded-xl border border-blue-200">
+              コード: <span className="font-bold">{room?.room_code}</span>
             </div>
           </div>
 
           {room?.status === 'waiting' && isHost && (
             <button
               onClick={startQuiz}
-              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105"
             >
-              クイズを開始
+              🚀 クイズを開始
             </button>
           )}
 
           {room?.status === 'waiting' && !isHost && (
-            <p className="text-gray-600">ホストがクイズを開始するのを待っています...</p>
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 text-yellow-800 px-6 py-4 rounded-xl">
+              <p className="flex items-center">
+                <span className="mr-2">⏳</span>
+                ホストがクイズを開始するのを待っています...
+              </p>
+            </div>
           )}
         </div>
 
         {currentQuestion && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">{currentQuestion.question_text}</h2>
-              <div className="text-2xl font-bold text-blue-500">
-                {timeLeft}秒
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 mb-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">
+                ❓ {currentQuestion.question_text}
+              </h2>
+              <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-xl rounded-full shadow-lg">
+                {timeLeft}
               </div>
             </div>
 
@@ -274,16 +286,17 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
                   key={index}
                   onClick={() => !showResults && setSelectedAnswer(option)}
                   disabled={showResults}
-                  className={`p-4 rounded-lg border-2 transition-colors ${
+                  className={`p-6 rounded-xl border-2 font-medium text-left transition-all duration-200 transform hover:scale-105 ${
                     selectedAnswer === option
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 shadow-lg'
+                      : 'border-gray-300 bg-white hover:border-gray-400 hover:shadow-md'
                   } ${
                     showResults && option === currentQuestion.options[0]
-                      ? 'bg-green-100 border-green-500'
+                      ? 'bg-gradient-to-r from-green-100 to-green-200 border-green-500 text-green-800'
                       : ''
                   }`}
                 >
+                  <span className="text-sm font-bold text-gray-500 mr-2">{String.fromCharCode(65 + index)}.</span>
                   {option}
                 </button>
               ))}
@@ -291,29 +304,35 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">参加者 ({participants.length}/{room?.max_players})</h2>
-          <div className="space-y-2">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">
+            🏆 参加者 ({participants.length}/{room?.settings?.maxParticipants || 10})
+          </h2>
+          <div className="space-y-3">
             {participants
               .sort((a, b) => b.score - a.score)
               .map((participant, index) => (
                 <div
                   key={participant.id}
-                  className="flex justify-between items-center p-3 rounded bg-gray-50"
+                  className="flex justify-between items-center p-4 rounded-xl bg-gradient-to-r from-white to-gray-50 shadow-md border border-gray-200"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-lg">#{index + 1}</span>
-                    <span>{participant.users.username}</span>
-                    {participant.user_id === room?.host_id && (
-                      <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">HOST</span>
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold text-sm">
+                      {index + 1}
+                    </span>
+                    <span className="font-medium text-gray-800">{participant.display_name}</span>
+                    {participant.user_id === room?.host_user_id && (
+                      <span className="text-xs bg-gradient-to-r from-green-500 to-blue-500 text-white px-3 py-1 rounded-full font-medium">
+                        HOST
+                      </span>
                     )}
                   </div>
-                  <span className="font-semibold">{participant.score}点</span>
+                  <span className="font-bold text-lg text-blue-600">{participant.score}点</span>
                 </div>
               ))}
           </div>
         </div>
       </div>
-    </div>
+    </GradientLayout>
   )
 }
