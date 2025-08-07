@@ -50,9 +50,9 @@ export class QuizSessionService {
       userId = session.user.id;
     }
 
-    // セッション作成（既存quiz_roomsテーブルを使用）
+    // セッション作成（quiz_sessionsテーブルを使用）
     const { data, error } = await this.supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .insert({
         playlist_id: playlistId,
         room_code: roomCodeData,
@@ -78,7 +78,7 @@ export class QuizSessionService {
    */
   async getSession(sessionId: string): Promise<QuizSession | null> {
     const { data, error } = await this.supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .select('*')
       .eq('id', sessionId)
       .single();
@@ -98,7 +98,7 @@ export class QuizSessionService {
    */
   async getSessionByRoomCode(roomCode: string): Promise<QuizSession | null> {
     const { data, error } = await this.supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .select('*')
       .eq('room_code', roomCode.toUpperCase())
       .single();
@@ -121,7 +121,7 @@ export class QuizSessionService {
     status: 'waiting' | 'playing' | 'finished'
   ): Promise<void> {
     const { error } = await this.supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .update({ status })
       .eq('id', sessionId);
 
@@ -138,7 +138,7 @@ export class QuizSessionService {
     questionIndex: number
   ): Promise<void> {
     const { error } = await this.supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .update({ current_question_index: questionIndex })
       .eq('id', sessionId);
 
@@ -152,7 +152,7 @@ export class QuizSessionService {
    */
   async deleteSession(sessionId: string): Promise<void> {
     const { error } = await this.supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .delete()
       .eq('id', sessionId);
 
@@ -172,7 +172,7 @@ export class QuizSessionService {
     const user = session.user;
 
     const { data, error } = await this.supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .select('*')
       .eq('host_id', user.id)
       .order('created_at', { ascending: false });
