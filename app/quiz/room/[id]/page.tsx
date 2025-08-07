@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/app/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import GradientLayout from '@/app/components/ui/GradientLayout'
 
@@ -25,8 +25,9 @@ interface Question {
   question_order: number
 }
 
-export default function QuizRoomPage({ params }: { params: Promise<{ id: string }> }) {
-  const [roomId, setRoomId] = useState<string | null>(null)
+export default function QuizRoomPage() {
+  const params = useParams()
+  const roomId = params.id as string
   const [room, setRoom] = useState<any>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
@@ -40,15 +41,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
 
   useEffect(() => {
-    console.log('=== PARAMS EFFECT ===')
-    params.then(({ id }) => {
-      console.log('Room ID from params:', id)
-      setRoomId(id)
-    })
-  }, [params])
-
-  useEffect(() => {
-    console.log('=== ROOM ID EFFECT ===', roomId)
+    console.log('=== ROOM EFFECT ===', roomId)
     if (!roomId) {
       console.log('No roomId, returning early')
       return
