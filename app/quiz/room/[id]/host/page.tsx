@@ -33,6 +33,8 @@ export default function HostPage() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [generatingQuestions, setGeneratingQuestions] = useState(false)
+  const [questionsGenerated, setQuestionsGenerated] = useState(false)
 
   useEffect(() => {
     if (sessionId) {
@@ -133,6 +135,36 @@ export default function HostPage() {
     }
   }
 
+  const generateQuestions = async () => {
+    setGeneratingQuestions(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/quiz/questions/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '問題生成に失敗しました')
+      }
+      
+      const data = await response.json()
+      setQuestionsGenerated(true)
+      console.log(`${data.questionsCount}問の問題を生成しました`)
+      
+    } catch (err) {
+      console.error('Error generating questions:', err)
+      setError(err instanceof Error ? err.message : '問題生成に失敗しました')
+    } finally {
+      setGeneratingQuestions(false)
+    }
+  }
+
   const startQuiz = async () => {
     try {
       const response = await fetch(`/api/quiz/sessions/${sessionId}/start`, {
@@ -140,7 +172,8 @@ export default function HostPage() {
       })
       
       if (!response.ok) {
-        throw new Error('クイズ開始に失敗しました')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'クイズ開始に失敗しました')
       }
       
       // セッション状態を更新
@@ -148,7 +181,7 @@ export default function HostPage() {
       
     } catch (err) {
       console.error('Error starting quiz:', err)
-      setError('クイズ開始に失敗しました')
+      setError(err instanceof Error ? err.message : 'クイズ開始に失敗しました')
     }
   }
 
@@ -261,8 +294,34 @@ export default function HostPage() {
               <p className="text-sm text-gray-500">このコードを参加者に共有してください</p>
             </div>
 
+            {/* 問題生成ボタン */}
+            {session.status === 'waiting' && !questionsGenerated && (
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6">
+                <button
+                  onClick={generateQuestions}
+                  disabled={generatingQuestions}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-bold py-4 px-6 rounded-lg text-lg transition-all duration-200 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed mb-4"
+                >
+                  {generatingQuestions ? (
+                    <>
+                      <span className="mr-2">⏳</span>
+                      問題生成中...
+                    </>
+                  ) : (
+                    <>
+                      <span className="mr-2">🎯</span>
+                      問題を生成
+                    </>
+                  )}
+                </button>
+                <p className="text-xs text-gray-500 text-center">
+                  プレイリストから問題を自動生成します
+                </p>
+              </div>
+            )}
+
             {/* 開始ボタン */}
-            {session.status === 'waiting' && (
+            {session.status === 'waiting' && questionsGenerated && (
               <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6">
                 <button
                   onClick={startQuiz}
