@@ -71,8 +71,20 @@ export async function POST(request: NextRequest) {
     // デバッグ: 取得した動画データを確認
     console.log('Retrieved playlist videos:', playlistVideos);
 
+    // NULL video_id の動画をフィルタリング
+    const validVideos = playlistVideos.filter(video => video.video_id !== null && video.video_id !== undefined);
+    
+    if (validVideos.length === 0) {
+      return NextResponse.json(
+        { error: 'プレイリストに有効な動画がありません。動画IDがnullの動画は問題生成に使用できません。' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Filtered ${validVideos.length} valid videos out of ${playlistVideos.length} total videos`);
+
     // 動画情報を VideoInfo 形式に変換
-    const videoInfos: VideoInfo[] = playlistVideos.map(video => {
+    const videoInfos: VideoInfo[] = validVideos.map(video => {
       console.log('Processing video:', {
         video_id: video.video_id,
         title: video.title,
