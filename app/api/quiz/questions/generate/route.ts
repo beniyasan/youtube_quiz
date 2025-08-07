@@ -1,7 +1,7 @@
 // 問題生成API
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/app/lib/supabase/client';
+import { createClient } from '@/app/lib/supabase/server';
 import { VideoProcessor } from '@/app/lib/utils/video-processor';
 import type { VideoInfo } from '@/app/lib/utils/video-processor';
 
@@ -17,11 +17,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // セッション情報取得
     const { data: session, error: sessionError } = await supabase
-      .from('quiz_rooms')
+      .from('quiz_sessions')
       .select('*, playlists(*)')
       .eq('id', sessionId)
       .single();
