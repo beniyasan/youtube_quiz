@@ -32,7 +32,7 @@ export async function GET(
     const { data: questions, error: questionsError } = await supabase
       .from('quiz_questions')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .order('question_order');
 
     if (questionsError) {
