@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { QuizSessionService } from '@/app/lib/supabase/quiz-sessions';
-import { createClient } from '@/app/lib/supabase/client';
+import { createClient } from '@/app/lib/supabase/server';
 
 export async function POST(
   request: NextRequest,
@@ -22,7 +22,7 @@ export async function POST(
     }
 
     // 現在のユーザーがホストかチェック
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
@@ -32,7 +32,7 @@ export async function POST(
       );
     }
 
-    if (session.host_id !== user.id) {
+    if (session.host_user_id !== user.id) {
       return NextResponse.json(
         { error: 'ホストのみがゲームを開始できます' },
         { status: 403 }

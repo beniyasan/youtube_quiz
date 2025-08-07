@@ -56,7 +56,7 @@ export class QuizSessionService {
       .insert({
         playlist_id: playlistId,
         room_code: roomCodeData,
-        host_id: userId,
+        host_user_id: userId,
         max_players: settings.maxParticipants,
         settings: settings as any
       })

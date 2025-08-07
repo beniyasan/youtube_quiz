@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (session.host_id !== user.id) {
+    if (session.host_user_id !== user.id) {
       return NextResponse.json(
         { error: 'ホストのみが問題を生成できます' },
         { status: 403 }

@@ -2,7 +2,7 @@
 
 export interface QuizSession {
   id: string;
-  host_id: string; // 既存テーブルのカラム名
+  host_user_id: string; // 実際のテーブルのカラム名
   playlist_id: string;
   room_code: string;
   status: 'waiting' | 'playing' | 'finished';
