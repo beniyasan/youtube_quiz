@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 問題一覧取得（正解は含めない）
     const { data: questions, error } = await supabase
