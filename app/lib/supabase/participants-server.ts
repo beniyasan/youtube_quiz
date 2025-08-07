@@ -111,9 +111,35 @@ export class ParticipantServerService {
   }
 
   /**
+   * データマイグレーション: room_idからsession_idへの自動修正
+   */
+  private async migrateParticipantData(sessionId: string): Promise<void> {
+    try {
+      const supabase = await createClient();
+      // session_id が NULL で room_id にデータがある参加者を修正
+      const { error } = await supabase
+        .from('quiz_participants')
+        .update({ session_id: sessionId })
+        .eq('room_id', sessionId)
+        .is('session_id', null);
+
+      if (error) {
+        console.warn('Server participant data migration failed:', error);
+      } else {
+        console.log('Server participant data migration completed for session:', sessionId);
+      }
+    } catch (error) {
+      console.warn('Server participant data migration error:', error);
+    }
+  }
+
+  /**
    * セッションの参加者一覧を取得
    */
   async getParticipants(sessionId: string): Promise<QuizParticipant[]> {
+    // データマイグレーションを最初に実行
+    await this.migrateParticipantData(sessionId);
+    
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('quiz_participants')
