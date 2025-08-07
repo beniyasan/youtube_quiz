@@ -68,13 +68,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // デバッグ: 取得した動画データを確認
+    console.log('Retrieved playlist videos:', playlistVideos);
+
     // 動画情報を VideoInfo 形式に変換
-    const videoInfos: VideoInfo[] = playlistVideos.map(video => ({
-      id: video.video_id,
-      title: video.title,
-      duration: video.duration || 300, // デフォルト5分
-      thumbnail: video.thumbnail_url || VideoProcessor.getThumbnailUrl(video.video_id)
-    }));
+    const videoInfos: VideoInfo[] = playlistVideos.map(video => {
+      console.log('Processing video:', {
+        video_id: video.video_id,
+        title: video.title,
+        duration: video.duration
+      });
+      
+      return {
+        id: video.video_id,
+        title: video.title,
+        duration: video.duration || 300, // デフォルト5分
+        thumbnail: video.thumbnail_url || VideoProcessor.getThumbnailUrl(video.video_id)
+      };
+    });
+    
+    console.log('Converted video infos:', videoInfos);
 
     // 問題データ生成
     const questionData = await VideoProcessor.generateQuestionsFromPlaylist(
