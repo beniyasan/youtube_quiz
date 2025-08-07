@@ -37,10 +37,37 @@ export default function HostPage() {
   useEffect(() => {
     if (sessionId) {
       fetchSessionData()
+      
+      // リアルタイム購読の設定
+      const supabase = createClient()
+      const channel = supabase
+        .channel(`host-room-${sessionId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'quiz_participants',
+            filter: `session_id=eq.${sessionId}`,
+          },
+          (payload) => {
+            console.log('[HOST] Realtime participant change:', payload)
+            fetchSessionData() // 参加者情報を再取得
+          }
+        )
+        .subscribe((status) => {
+          console.log('[HOST] Realtime subscription status:', status)
+        })
+      
+      // クリーンアップ
+      return () => {
+        supabase.removeChannel(channel)
+      }
     }
   }, [sessionId])
 
   const fetchSessionData = async () => {
+    console.log('[HOST] Fetching session data for ID:', sessionId)
     try {
       const supabase = createClient()
       
@@ -56,6 +83,7 @@ export default function HostPage() {
 
       if (sessionError) throw sessionError
       
+      console.log('[HOST] Session data:', sessionData)
       setSession(sessionData)
       
       // 参加者情報を取得
@@ -67,6 +95,8 @@ export default function HostPage() {
 
       if (participantsError) throw participantsError
       
+      console.log('[HOST] Participants data:', participantsData)
+      console.log('[HOST] Participants count:', participantsData?.length || 0)
       setParticipants(participantsData || [])
       
     } catch (err) {
