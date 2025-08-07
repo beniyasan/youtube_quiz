@@ -15,9 +15,14 @@ interface Participant {
 
 interface Question {
   id: string
+  video_id: string
+  video_title: string
   question_text: string
-  options: string[]
+  correct_answer: string
+  correct_answers: string[]
+  options: any
   time_limit: number
+  question_order: number
 }
 
 export default function QuizRoomPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +35,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
   const [showResults, setShowResults] = useState(false)
   const [isHost, setIsHost] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [sessionData, setSessionData] = useState<any>(null)
   const router = useRouter()
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
 
@@ -81,30 +87,29 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
       return
     }
 
-    console.log('Loading room data for room:', roomId)
-    const { data: roomData } = await supabase
-      .from('quiz_sessions')
-      .select(`
-        *,
-        playlists (
-          name,
-          youtube_videos (*)
-        )
-      `)
-      .eq('id', roomId)
-      .single()
-
-    console.log('Room data loaded:', roomData)
-    
-    if (roomData) {
-      setRoom(roomData)
-      const isHostUser = roomData.host_user_id === user.id
-      console.log('Is host user:', isHostUser, '| Host user ID:', roomData.host_user_id, '| Current user ID:', user.id)
+    console.log('Loading session data from API for room:', roomId)
+    try {
+      const response = await fetch(`/api/quiz/sessions/${roomId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch session data')
+      }
+      
+      const data = await response.json()
+      console.log('Session data loaded:', data)
+      
+      setSessionData(data)
+      setRoom(data.session)
+      setParticipants(data.participants || [])
+      setCurrentQuestion(data.currentQuestion)
+      
+      const isHostUser = data.session.host_user_id === user.id
+      console.log('Is host user:', isHostUser, '| Host user ID:', data.session.host_user_id, '| Current user ID:', user.id)
       setIsHost(isHostUser)
+      
+    } catch (error) {
+      console.error('Error loading session data:', error)
     }
-
-    console.log('About to load participants...')
-    await loadParticipants()
+    
     console.log('Setting loading to false')
     setLoading(false)
   }
@@ -164,18 +169,16 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
         (payload) => {
           console.log('Realtime session change:', payload)
           loadRoom()
+          
+          // クイズが開始された場合、現在の問題を設定
+          if (payload.new?.status === 'playing' && sessionData?.currentQuestion) {
+            setCurrentQuestion(sessionData.currentQuestion)
+            setTimeLeft(sessionData.currentQuestion.time_limit || 30)
+            setSelectedAnswer(null)
+            setShowResults(false)
+          }
         }
       )
-      .on('broadcast', { event: 'question' }, (payload) => {
-        setCurrentQuestion(payload.payload.question)
-        setTimeLeft(payload.payload.question.time_limit)
-        setSelectedAnswer(null)
-        setShowResults(false)
-      })
-      .on('broadcast', { event: 'results' }, () => {
-        setShowResults(true)
-        loadParticipants()
-      })
       .subscribe((status) => {
         console.log('Realtime subscription status:', status)
       })
@@ -183,48 +186,33 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
     setChannel(newChannel)
   }
 
+  // ホストのみ: クイズ開始
   const startQuiz = async () => {
     if (!isHost || !room) return
 
-    const supabase = createClient()
-    await supabase
-      .from('quiz_sessions')
-      .update({ status: 'playing' })
-      .eq('id', roomId)
-
-    sendNextQuestion()
-  }
-
-  const sendNextQuestion = () => {
-    if (!room?.playlists?.youtube_videos) return
-
-    const videos = room.playlists.youtube_videos
-    const randomVideo = videos[Math.floor(Math.random() * videos.length)]
-    
-    const question: Question = {
-      id: crypto.randomUUID(),
-      question_text: `この曲のタイトルは？「${randomVideo.title}」`,
-      options: generateOptions(randomVideo.title, videos.map((v: any) => v.title)),
-      time_limit: 30,
+    try {
+      const response = await fetch(`/api/quiz/sessions/${roomId}/start`, {
+        method: 'POST',
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'クイズ開始に失敗しました')
+      }
+      
+      // セッション状態を更新
+      setRoom(prev => prev ? { ...prev, status: 'playing' } : null)
+      
+      // 現在の問題を表示
+      if (sessionData?.currentQuestion) {
+        setCurrentQuestion(sessionData.currentQuestion)
+        setTimeLeft(sessionData.currentQuestion.time_limit || 30)
+        setSelectedAnswer(null)
+        setShowResults(false)
+      }
+    } catch (error) {
+      console.error('Error starting quiz:', error)
     }
-
-    channel?.send({
-      type: 'broadcast',
-      event: 'question',
-      payload: { question },
-    })
-  }
-
-  const generateOptions = (correct: string, allTitles: string[]): string[] => {
-    const options = [correct]
-    const otherTitles = allTitles.filter(t => t !== correct)
-    
-    while (options.length < 4 && otherTitles.length > 0) {
-      const randomIndex = Math.floor(Math.random() * otherTitles.length)
-      options.push(otherTitles.splice(randomIndex, 1)[0])
-    }
-    
-    return options.sort(() => Math.random() - 0.5)
   }
 
   const submitAnswer = async () => {
@@ -237,25 +225,32 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
     const participant = participants.find(p => p.user_id === user.id)
     if (!participant) return
 
-    const isCorrect = selectedAnswer === currentQuestion.options[0]
+    // 正解かどうかチェック
+    const isCorrect = currentQuestion.correct_answers.includes(selectedAnswer)
     const points = isCorrect ? Math.ceil(timeLeft * 10) : 0
 
-    await supabase
-      .from('quiz_participants')
-      .update({ score: participant.score + points })
-      .eq('id', participant.id)
-
-    if (isHost) {
-      setTimeout(() => {
-        channel?.send({
-          type: 'broadcast',
-          event: 'results',
+    // 答えをデータベースに保存
+    try {
+      await supabase
+        .from('quiz_answers')
+        .insert({
+          question_id: currentQuestion.id,
+          participant_id: participant.id,
+          answer: selectedAnswer,
+          is_correct: isCorrect,
+          answered_at: new Date().toISOString(),
+          points_awarded: points
         })
-      }, 2000)
 
-      setTimeout(() => {
-        sendNextQuestion()
-      }, 5000)
+      // 参加者のスコアを更新
+      await supabase
+        .from('quiz_participants')
+        .update({ score: participant.score + points })
+        .eq('id', participant.id)
+        
+      setShowResults(true)
+    } catch (error) {
+      console.error('Error submitting answer:', error)
     }
   }
 
@@ -287,13 +282,22 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
             </div>
           </div>
 
-          {room?.status === 'waiting' && isHost && (
+          {room?.status === 'waiting' && isHost && sessionData?.questions?.length > 0 && (
             <button
               onClick={startQuiz}
               className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105"
             >
               🚀 クイズを開始
             </button>
+          )}
+          
+          {room?.status === 'waiting' && isHost && (!sessionData?.questions || sessionData.questions.length === 0) && (
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 text-yellow-800 px-6 py-4 rounded-xl">
+              <p className="flex items-center">
+                <span className="mr-2">⚠️</span>
+                問題を生成してからクイズを開始してください
+              </p>
+            </div>
           )}
 
           {room?.status === 'waiting' && !isHost && (
@@ -306,45 +310,69 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
           )}
         </div>
 
-        {currentQuestion && (
+        {currentQuestion && room?.status === 'playing' && (
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 mb-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
-                ❓ {currentQuestion.question_text}
-              </h2>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                  ❓ {currentQuestion.question_text}
+                </h2>
+                <p className="text-lg text-gray-600">
+                  🎵 「{currentQuestion.video_title}」
+                </p>
+              </div>
               <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-xl rounded-full shadow-lg">
                 {timeLeft}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {currentQuestion.options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => !showResults && setSelectedAnswer(option)}
-                  disabled={showResults}
-                  className={`p-6 rounded-xl border-2 font-medium text-left transition-all duration-200 transform hover:scale-105 ${
-                    selectedAnswer === option
-                      ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 shadow-lg'
-                      : 'border-gray-300 bg-white hover:border-gray-400 hover:shadow-md'
-                  } ${
-                    showResults && option === currentQuestion.options[0]
-                      ? 'bg-gradient-to-r from-green-100 to-green-200 border-green-500 text-green-800'
-                      : ''
-                  }`}
-                >
-                  <span className="text-sm font-bold text-gray-500 mr-2">{String.fromCharCode(65 + index)}.</span>
-                  {option}
-                </button>
-              ))}
+            <div className="mb-6">
+              <input
+                type="text"
+                value={selectedAnswer || ''}
+                onChange={(e) => !showResults && setSelectedAnswer(e.target.value)}
+                disabled={showResults}
+                placeholder="答えを入力してください（競走馬名またはレース名）"
+                className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-blue-500 focus:outline-none disabled:bg-gray-100"
+              />
             </div>
+            
+            {!showResults && selectedAnswer && (
+              <button
+                onClick={submitAnswer}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200"
+              >
+                回答する
+              </button>
+            )}
+            
+            {showResults && (
+              <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
+                <p className="text-lg font-bold text-green-800 mb-2">正解:</p>
+                <p className="text-xl text-green-700">{currentQuestion.correct_answers.join(', ')}</p>
+              </div>
+            )}
           </div>
         )}
 
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
           <h2 className="text-2xl font-bold mb-6 text-gray-800">
-            🏆 参加者 ({participants.length}/{room?.settings?.maxParticipants || 10})
+            🏆 参加者 ({participants.length}/{room?.max_players || 10})
           </h2>
+          
+          {room?.status === 'playing' && sessionData?.questions && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200">
+              <p className="text-sm text-purple-700">
+                問題 {(room.current_question_index || 0) + 1} / {sessionData.questions.length}
+              </p>
+              <div className="w-full bg-purple-200 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(((room.current_question_index || 0) + 1) / sessionData.questions.length) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
           {/* Debug info */}
           {process.env.NODE_ENV === 'development' && (
             <div className="mb-4 p-2 bg-yellow-100 text-xs">

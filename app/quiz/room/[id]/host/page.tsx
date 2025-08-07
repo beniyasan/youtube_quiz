@@ -35,6 +35,8 @@ export default function HostPage() {
   const [error, setError] = useState<string | null>(null)
   const [generatingQuestions, setGeneratingQuestions] = useState(false)
   const [questionsGenerated, setQuestionsGenerated] = useState(false)
+  const [sessionData, setSessionData] = useState<any>(null)
+  const [currentQuestion, setCurrentQuestion] = useState<any>(null)
 
   useEffect(() => {
     if (sessionId) {
@@ -94,38 +96,29 @@ export default function HostPage() {
   const fetchSessionData = async () => {
     console.log('[HOST] Fetching session data for ID:', sessionId)
     try {
-      const supabase = createClient()
-      
       // データマイグレーションを最初に実行
       await migrateParticipantData()
       
-      // セッション情報を取得
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('quiz_sessions')
-        .select(`
-          *,
-          playlists(id, name, description)
-        `)
-        .eq('id', sessionId)
-        .single()
-
-      if (sessionError) throw sessionError
+      // 新しいAPI経由でセッション情報を取得
+      const response = await fetch(`/api/quiz/sessions/${sessionId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch session data')
+      }
       
-      console.log('[HOST] Session data:', sessionData)
-      setSession(sessionData)
+      const data = await response.json()
+      console.log('[HOST] Session data from API:', data)
       
-      // 参加者情報を取得
-      const { data: participantsData, error: participantsError } = await supabase
-        .from('quiz_participants')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('score', { ascending: false })
-
-      if (participantsError) throw participantsError
+      setSessionData(data)
+      setSession(data.session)
+      setParticipants(data.participants || [])
+      setCurrentQuestion(data.currentQuestion)
       
-      console.log('[HOST] Participants data:', participantsData)
-      console.log('[HOST] Participants count:', participantsData?.length || 0)
-      setParticipants(participantsData || [])
+      // 問題が存在するかチェック
+      if (data.questions && data.questions.length > 0) {
+        setQuestionsGenerated(true)
+      }
+      
+      console.log('[HOST] Participants count:', data.participants?.length || 0)
       
     } catch (err) {
       console.error('Error fetching session data:', err)
@@ -241,6 +234,31 @@ export default function HostPage() {
           </div>
         </div>
 
+        {/* 現在の問題表示 */}
+        {session?.status === 'playing' && currentQuestion && (
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              現在の問題
+            </h2>
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-blue-800 mb-2">
+                    問題 {(session.current_question_index || 0) + 1}: {currentQuestion.question_text}
+                  </h3>
+                  <p className="text-lg text-gray-700 mb-3">
+                    🎵 「{currentQuestion.video_title}」
+                  </p>
+                  <div className="bg-white rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-2">正解:</p>
+                    <p className="text-lg font-medium text-green-700">{currentQuestion.correct_answers.join(', ')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 参加者リスト */}
           <div className="lg:col-span-2">
@@ -349,15 +367,15 @@ export default function HostPage() {
             )}
 
             {/* 進行中の場合の情報 */}
-            {session.status === 'playing' && (
+            {session.status === 'playing' && sessionData?.questions && (
               <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">進行状況</h3>
                 <div className="space-y-2">
-                  <div>問題 {session.current_question_index + 1}</div>
+                  <div>問題 {(session.current_question_index || 0) + 1} / {sessionData.questions.length}</div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${((session.current_question_index + 1) / 10) * 100}%` }}
+                      style={{ width: `${(((session.current_question_index || 0) + 1) / sessionData.questions.length) * 100}%` }}
                     ></div>
                   </div>
                 </div>
