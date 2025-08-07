@@ -111,8 +111,8 @@ export class VideoProcessor {
       const videoStartTime = this.generateRandomStartTime(video.duration);
       
       questions.push({
-        room_id: sessionId, // 既存テーブルのカラム名
-        video_id: video.id,
+        session_id: sessionId, // 修正: session_idを使用
+        video_id: video.id, // YouTube動画ID（文字列のまま）
         video_title: video.title,
         question_text: `この動画のタイトルに含まれる競走馬名またはレース名は？`, // 既存テーブルの必須カラム
         correct_answer: correctAnswers[0], // 既存テーブルの必須カラム（単数形）
