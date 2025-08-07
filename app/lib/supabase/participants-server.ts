@@ -72,6 +72,7 @@ export class ParticipantServerService {
       .from('quiz_participants')
       .insert({
         session_id: sessionId,
+        room_id: sessionId,  // room_idも同じ値を設定（NOT NULL制約対応）
         user_id: user.id,
         display_name: displayName
       })
