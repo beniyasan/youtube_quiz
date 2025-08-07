@@ -38,7 +38,7 @@ export interface QuizParticipant {
 
 export interface QuizQuestion {
   id: string;
-  room_id: string; // 既存テーブルのカラム名
+  session_id: string; // 修正: session_idを使用
   video_id: string;
   video_title: string;
   question_text: string; // 既存テーブルのカラム名
