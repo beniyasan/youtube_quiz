@@ -29,7 +29,7 @@ export class ParticipantServerService {
     const { data: existingParticipant } = await supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .single();
 
@@ -56,7 +56,7 @@ export class ParticipantServerService {
     const { count: currentParticipants, error: countError } = await supabase
       .from('quiz_participants')
       .select('*', { count: 'exact', head: true })
-      .eq('room_id', sessionId);
+      .eq('session_id', sessionId);
 
     if (countError) {
       console.error('Participant count error:', countError);
@@ -71,7 +71,7 @@ export class ParticipantServerService {
     const { data: participant, error } = await supabase
       .from('quiz_participants')
       .insert({
-        room_id: sessionId,
+        session_id: sessionId,
         user_id: user.id,
         display_name: displayName
       })
@@ -102,7 +102,7 @@ export class ParticipantServerService {
     const { error } = await supabase
       .from('quiz_participants')
       .delete()
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -118,7 +118,7 @@ export class ParticipantServerService {
     const { data, error } = await supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .order('joined_at', { ascending: true });
 
     if (error) {
@@ -142,7 +142,7 @@ export class ParticipantServerService {
     const { data, error } = await supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .single();
 
