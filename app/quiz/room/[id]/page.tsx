@@ -201,7 +201,7 @@ export default function QuizRoomPage({ params }: { params: Promise<{ id: string 
       }
       
       // セッション状態を更新
-      setRoom(prev => prev ? { ...prev, status: 'playing' } : null)
+      setRoom((prev: any) => prev ? { ...prev, status: 'playing' } : null)
       
       // 現在の問題を表示
       if (sessionData?.currentQuestion) {
