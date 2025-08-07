@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     const { error: deleteError } = await supabase
       .from('quiz_questions')
       .delete()
-      .eq('room_id', sessionId);
+      .eq('session_id', sessionId);
 
     if (deleteError) {
       console.error('Existing questions deletion error:', deleteError);

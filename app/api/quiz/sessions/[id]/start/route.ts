@@ -50,7 +50,7 @@ export async function POST(
     const { data: questions, error: questionsError } = await supabase
       .from('quiz_questions')
       .select('id')
-      .eq('room_id', sessionId);
+      .eq('session_id', sessionId);
 
     if (questionsError) {
       throw new Error('問題取得に失敗しました');
@@ -67,7 +67,7 @@ export async function POST(
     const { data: participants, error: participantsError } = await supabase
       .from('quiz_participants')
       .select('id')
-      .eq('room_id', sessionId);
+      .eq('session_id', sessionId);
 
     if (participantsError) {
       throw new Error('参加者取得に失敗しました');

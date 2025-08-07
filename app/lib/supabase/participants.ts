@@ -35,7 +35,7 @@ export class ParticipantService {
     const { data: existingParticipant } = await this.supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .single();
 
@@ -70,7 +70,7 @@ export class ParticipantService {
     const { data: participant, error } = await this.supabase
       .from('quiz_participants')
       .insert({
-        room_id: sessionId,
+        session_id: sessionId,
         user_id: user.id,
         display_name: displayName
       })
@@ -100,7 +100,7 @@ export class ParticipantService {
     const { error } = await this.supabase
       .from('quiz_participants')
       .delete()
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -115,7 +115,7 @@ export class ParticipantService {
     const { data, error } = await this.supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .order('joined_at', { ascending: true });
 
     if (error) {
@@ -181,7 +181,7 @@ export class ParticipantService {
     const { data, error } = await this.supabase
       .from('quiz_participants')
       .select('*')
-      .eq('room_id', sessionId)
+      .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .single();
 
