@@ -27,7 +27,7 @@ export interface QuizSettings {
 
 export interface QuizParticipant {
   id: string;
-  room_id: string; // 既存テーブルのカラム名
+  session_id: string; // セッションID（Supabaseスキーマに合わせて修正）
   user_id: string;
   display_name: string;
   score: number;

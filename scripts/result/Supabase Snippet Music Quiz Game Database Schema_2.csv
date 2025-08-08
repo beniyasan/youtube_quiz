@@ -1,0 +1,60 @@
+table_name,column_name,data_type,character_maximum_length,is_nullable,column_default,ordinal_position
+playlists,id,uuid,null,NO,uuid_generate_v4(),1
+playlists,user_id,uuid,null,NO,null,2
+playlists,name,text,null,NO,null,3
+playlists,description,text,null,YES,null,4
+playlists,created_at,timestamp with time zone,null,YES,now(),5
+playlists,updated_at,timestamp with time zone,null,YES,now(),6
+quiz_answers,id,uuid,null,NO,uuid_generate_v4(),1
+quiz_answers,question_id,uuid,null,NO,null,2
+quiz_answers,participant_id,uuid,null,NO,null,3
+quiz_answers,answer,text,null,NO,null,4
+quiz_answers,is_correct,boolean,null,NO,null,5
+quiz_answers,answered_at,timestamp with time zone,null,YES,now(),6
+quiz_answers,stage,integer,null,YES,1,7
+quiz_answers,points_awarded,integer,null,YES,0,8
+quiz_participants,id,uuid,null,NO,uuid_generate_v4(),1
+quiz_participants,room_id,uuid,null,NO,null,2
+quiz_participants,user_id,uuid,null,NO,null,3
+quiz_participants,score,integer,null,YES,0,4
+quiz_participants,joined_at,timestamp with time zone,null,YES,now(),5
+quiz_participants,display_name,text,null,YES,''::text,6
+quiz_participants,is_buzzer_pressed,boolean,null,YES,false,7
+quiz_participants,buzzer_pressed_at,timestamp with time zone,null,YES,null,8
+quiz_participants,session_id,uuid,null,YES,null,9
+quiz_participants,is_connected,boolean,null,YES,true,10
+quiz_questions,id,uuid,null,NO,uuid_generate_v4(),1
+quiz_questions,room_id,uuid,null,YES,null,2
+quiz_questions,video_id,text,null,NO,null,3
+quiz_questions,question_text,text,null,NO,null,4
+quiz_questions,correct_answer,text,null,NO,null,5
+quiz_questions,options,jsonb,null,NO,null,6
+quiz_questions,time_limit,integer,null,YES,30,7
+quiz_questions,created_at,timestamp with time zone,null,YES,now(),8
+quiz_questions,video_title,text,null,YES,''::text,9
+quiz_questions,correct_answers,ARRAY,null,YES,'{}'::text[],10
+quiz_questions,question_order,integer,null,YES,0,11
+quiz_questions,session_id,uuid,null,NO,null,12
+quiz_sessions,id,uuid,null,NO,gen_random_uuid(),1
+quiz_sessions,playlist_id,uuid,null,YES,null,2
+quiz_sessions,room_code,character varying,6,NO,null,3
+quiz_sessions,host_user_id,uuid,null,YES,null,4
+quiz_sessions,status,character varying,20,YES,'waiting'::character varying,5
+quiz_sessions,current_question_index,integer,null,YES,0,6
+quiz_sessions,settings,jsonb,null,YES,'{}'::jsonb,7
+quiz_sessions,created_at,timestamp with time zone,null,YES,now(),8
+quiz_sessions,updated_at,timestamp with time zone,null,YES,now(),9
+users,id,uuid,null,NO,null,1
+users,email,text,null,NO,null,2
+users,username,text,null,NO,null,3
+users,created_at,timestamp with time zone,null,YES,now(),4
+users,updated_at,timestamp with time zone,null,YES,now(),5
+youtube_videos,id,uuid,null,NO,uuid_generate_v4(),1
+youtube_videos,playlist_id,uuid,null,NO,null,2
+youtube_videos,youtube_url,text,null,NO,null,3
+youtube_videos,title,text,null,NO,null,4
+youtube_videos,thumbnail_url,text,null,YES,null,5
+youtube_videos,duration,integer,null,YES,null,6
+youtube_videos,created_at,timestamp with time zone,null,YES,now(),7
+youtube_videos,order_index,integer,null,YES,0,8
+youtube_videos,video_id,text,null,YES,null,9

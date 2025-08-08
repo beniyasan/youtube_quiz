@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       const { error: participantError } = await supabase
         .from('quiz_participants')
         .insert({
-          room_id: data.id,
+          session_id: data.id,
           user_id: user.id,
           display_name: user.email?.split('@')[0] || 'Host' // メールアドレスの@より前をデフォルト名に
         });

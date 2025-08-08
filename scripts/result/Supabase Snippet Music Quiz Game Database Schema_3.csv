@@ -1,0 +1,8 @@
+参照元テーブル,参照元カラム,参照先テーブル,参照先カラム,制約名
+playlists,user_id,users,id,playlists_user_id_fkey
+quiz_answers,participant_id,quiz_participants,id,quiz_answers_participant_id_fkey
+quiz_answers,question_id,quiz_questions,id,quiz_answers_question_id_fkey
+quiz_participants,session_id,quiz_sessions,id,quiz_participants_session_id_fkey
+quiz_participants,user_id,users,id,quiz_participants_user_id_fkey
+quiz_sessions,playlist_id,playlists,id,quiz_sessions_playlist_id_fkey
+youtube_videos,playlist_id,playlists,id,youtube_videos_playlist_id_fkey

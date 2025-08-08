@@ -174,7 +174,7 @@ export class QuizSessionService {
     const { data, error } = await this.supabase
       .from('quiz_sessions')
       .select('*')
-      .eq('host_id', user.id)
+      .eq('host_user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -1,0 +1,5 @@
+table_name,table_type,table_schema
+quiz_answers,BASE TABLE,public
+quiz_participants,BASE TABLE,public
+quiz_questions,BASE TABLE,public
+quiz_sessions,BASE TABLE,public

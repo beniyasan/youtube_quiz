@@ -1,0 +1,8 @@
+スキーマ名,テーブル名,rls有効
+public,playlists,true
+public,quiz_answers,true
+public,quiz_participants,false
+public,quiz_questions,true
+public,quiz_sessions,false
+public,users,true
+public,youtube_videos,true
