@@ -1,0 +1,22 @@
+関数名,タイプ,戻り値型,定義
+generate_room_code,FUNCTION,text,"
+DECLARE
+    chars TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    result TEXT := '';
+    i INTEGER;
+BEGIN
+    FOR i IN 1..6 LOOP
+        result := result || substr(chars, floor(random() * length(chars) + 1)::INTEGER, 1);
+    END LOOP;
+    
+    -- 重複チェック（SECURITY DEFINERでRLSを回避）
+    WHILE EXISTS(SELECT 1 FROM quiz_sessions WHERE room_code = result) LOOP
+        result := '';
+        FOR i IN 1..6 LOOP
+            result := result || substr(chars, floor(random() * length(chars) + 1)::INTEGER, 1);
+        END LOOP;
+    END LOOP;
+    
+    RETURN result;
+END;
+"

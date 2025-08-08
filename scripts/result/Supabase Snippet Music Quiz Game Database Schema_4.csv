@@ -1,0 +1,8 @@
+table_name,column_name,ordinal_position
+playlists,id,1
+quiz_answers,id,1
+quiz_participants,id,1
+quiz_questions,id,1
+quiz_sessions,id,1
+users,id,1
+youtube_videos,id,1

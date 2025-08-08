@@ -1,0 +1,20 @@
+スキーマ名,テーブル名,ポリシー名,許可型,コマンド,対象ロール,条件
+public,playlists,Users can CRUD own playlists,PERMISSIVE,ALL,{public},(auth.uid() = user_id)
+public,playlists,Users can read public playlists,PERMISSIVE,SELECT,{public},true
+public,quiz_answers,Users can create their answers,PERMISSIVE,INSERT,{public},null
+public,quiz_answers,Users can read their answers,PERMISSIVE,SELECT,{public},"(EXISTS ( SELECT 1
+   FROM quiz_participants
+  WHERE ((quiz_participants.id = quiz_answers.participant_id) AND (quiz_participants.user_id = auth.uid()))))"
+public,quiz_participants,Anyone can read participants,PERMISSIVE,SELECT,{public},true
+public,quiz_participants,Users can join quiz rooms,PERMISSIVE,INSERT,{public},null
+public,quiz_participants,Users can update their participation,PERMISSIVE,UPDATE,{public},(auth.uid() = user_id)
+public,quiz_questions,Anyone in session can read questions,PERMISSIVE,SELECT,{public},"(EXISTS ( SELECT 1
+   FROM quiz_participants
+  WHERE ((quiz_participants.session_id = quiz_questions.session_id) AND (quiz_participants.user_id = auth.uid()))))"
+public,quiz_questions,Host can insert questions,PERMISSIVE,INSERT,{public},null
+public,users,Users can read own data,PERMISSIVE,SELECT,{public},(auth.uid() = id)
+public,users,Users can update own data,PERMISSIVE,UPDATE,{public},(auth.uid() = id)
+public,youtube_videos,Users can CRUD videos in own playlists,PERMISSIVE,ALL,{public},"(EXISTS ( SELECT 1
+   FROM playlists
+  WHERE ((playlists.id = youtube_videos.playlist_id) AND (playlists.user_id = auth.uid()))))"
+public,youtube_videos,Users can read videos in public playlists,PERMISSIVE,SELECT,{public},true

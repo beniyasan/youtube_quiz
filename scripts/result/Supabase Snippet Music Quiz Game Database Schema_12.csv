@@ -1,0 +1,48 @@
+create_statement
+"CREATE TABLE quiz_answers (
+  id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  question_id UUID NOT NULL,
+  participant_id UUID NOT NULL,
+  answer TEXT NOT NULL,
+  is_correct BOOLEAN NOT NULL,
+  answered_at TIMESTAMPTZ DEFAULT now(),
+  stage INTEGER DEFAULT 1,
+  points_awarded INTEGER DEFAULT 0
+);"
+"CREATE TABLE quiz_participants (
+  id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  room_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  score INTEGER DEFAULT 0,
+  joined_at TIMESTAMPTZ DEFAULT now(),
+  display_name TEXT DEFAULT ''::text,
+  is_buzzer_pressed BOOLEAN DEFAULT false,
+  buzzer_pressed_at TIMESTAMPTZ,
+  session_id UUID,
+  is_connected BOOLEAN DEFAULT true
+);"
+"CREATE TABLE quiz_questions (
+  id UUID NOT NULL DEFAULT uuid_generate_v4(),
+  room_id UUID,
+  video_id TEXT NOT NULL,
+  question_text TEXT NOT NULL,
+  correct_answer TEXT NOT NULL,
+  options JSONB NOT NULL,
+  time_limit INTEGER DEFAULT 30,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  video_title TEXT DEFAULT ''::text,
+  correct_answers ARRAY DEFAULT '{}'::text[],
+  question_order INTEGER DEFAULT 0,
+  session_id UUID NOT NULL
+);"
+"CREATE TABLE quiz_sessions (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  playlist_id UUID,
+  room_code VARCHAR(6) NOT NULL,
+  host_user_id UUID,
+  status VARCHAR(20) DEFAULT 'waiting'::character varying,
+  current_question_index INTEGER DEFAULT 0,
+  settings JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);"

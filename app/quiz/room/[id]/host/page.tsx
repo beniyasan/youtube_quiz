@@ -70,35 +70,10 @@ export default function HostPage() {
     }
   }, [sessionId])
 
-  // データマイグレーション: room_idからsession_idへの自動修正
-  const migrateParticipantData = async () => {
-    try {
-      const supabase = createClient()
-      console.log('[HOST] Checking for data migration need...')
-      
-      // session_id が NULL で room_id にデータがある参加者を修正
-      const { error: directUpdateError } = await supabase
-        .from('quiz_participants')
-        .update({ session_id: sessionId })
-        .eq('room_id', sessionId)
-        .is('session_id', null)
-        
-      if (directUpdateError) {
-        console.warn('[HOST] Data migration failed:', directUpdateError)
-      } else {
-        console.log('[HOST] Successfully migrated participant data')
-      }
-    } catch (error) {
-      console.warn('[HOST] Data migration error:', error)
-    }
-  }
 
   const fetchSessionData = async () => {
     console.log('[HOST] Fetching session data for ID:', sessionId)
     try {
-      // データマイグレーションを最初に実行
-      await migrateParticipantData()
-      
       // 新しいAPI経由でセッション情報を取得
       const response = await fetch(`/api/quiz/sessions/${sessionId}`)
       if (!response.ok) {
